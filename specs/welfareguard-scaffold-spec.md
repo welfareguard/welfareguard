@@ -35,7 +35,7 @@ scaffold should be prepared to be added once it does — do not assume and do no
 | aisafepy dependency | Import real types/interfaces (`Context`, `GuardDecision`, `Target`) where they exist; fake only the internal compile/execution logic | Deep-dive time was already spent learning `adapt`'s real shape — use it |
 | Error handling | Let real aisafepy call failures raise/crash normally — no try/except wrapping | This is scaffold code meant to surface integration breaks loudly and early, not hide them |
 | Docs | Every stub explicitly documents what's fake and why (Vidura-readable) | Vidura has ADR-001 approval authority and a scheduled walkthrough; code should be self-explanatory without live narration |
-| Public API | Single entry point: `check()` | Callers (harness, future users) never need to know which Target type is running underneath; Target-type selection logic lives inside `check()` once ADR-001 lands |
+| Public API | Single entry point: `check()` | Callers (harness, future users) never need to know which Target type is running underneath. **Superseded by the compiler prototype:** compilation turned out to be a separate lifecycle with a separate audience, so it lives behind its own `compile()`/`initialize()` entry point rather than inside `check()`. `check()` remains the sole *runtime* entry point and its signature is unchanged. See `welfareguard-compiler-prototype-spec.md`. |
 
 **Explicitly out of scope for this pass:** `distill_classifier`, `steering_vector`, `deliberative_case`
 stubs (note only, don't build); registry/lookup dispatch; retry/wrapping logic around aisafepy errors;
