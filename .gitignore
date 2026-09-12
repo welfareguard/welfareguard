@@ -216,3 +216,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# WSL / Windows "downloaded from the internet" marker files
+*:Zone.Identifier
