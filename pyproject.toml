@@ -1,0 +1,102 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "welfareguard"
+version = "0.0.1"
+description = "Eval-to-guardrail pipeline for nonhuman welfare in agentic AI systems (scaffold)"
+readme = "src/welfareguard/README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.10"
+keywords = [
+    "ai-safety",
+    "guardrails",
+    "digital-minds",
+    "nonhuman-welfare",
+    "agent-security",
+    "llm",
+]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+# Tracks aisafepy's main branch on purpose, unpinned. WelfareGuard imports
+# aisafepy's real types and never vendors or patches them, so an interface
+# change upstream should break tests/test_regex_guard_shape.py loudly and
+# immediately. A commit pin would hide exactly the drift that suite exists to
+# catch. Revisit once aisafepy cuts tagged releases.
+#
+# Note: this is a PEP 508 direct reference. It installs fine from source or VCS,
+# but PyPI rejects direct references in uploaded metadata, so this line must
+# become a plain version constraint before the PyPI end-goal.
+dependencies = [
+    "aisafepy @ git+https://github.com/Vidura-Wijekoon/aisafepy@main",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.4",
+]
+# Needed only by the Tier-2 classifier compile path. Without these,
+# _ClassifierTarget returns a "classifier-deferred-*" artifact carrying its
+# training_spec, which is a supported outcome rather than an error -- so the
+# regex tier and the whole test suite run without them.
+# On a CPU-only machine install torch from https://download.pytorch.org/whl/cpu;
+# the default PyPI wheel pulls 16+ NVIDIA CUDA packages that go unused.
+classifier = [
+    "torch>=2.2",
+    "transformers>=4.40",
+]
+
+[project.urls]
+Repository = "https://github.com/welfareguard/welfareguard"
+Issues = "https://github.com/welfareguard/welfareguard/issues"
+
+# Required by hatchling to accept the PEP 508 direct reference in
+# `project.dependencies` above. Drop this together with that reference once
+# aisafepy is resolvable by plain version constraint.
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/welfareguard"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/tests",
+    "/specs",
+    "/LICENSE",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "SIM", "RUF"]
+ignore = [
+    "E501",   # line length handled by the formatter
+    "RUF022", # __all__ ordering is deliberate (grouped runtime / compile-time /
+              # kinds / errors), matching aisafepy's own rationale for this ignore
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-markers", "--strict-config"]
