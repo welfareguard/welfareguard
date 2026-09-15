@@ -81,6 +81,8 @@ use, and update this contract rather than silently coding around a mismatch.
 ```python
 # src/welfareguard/guard.py:42
 async def check(ctx: Context) -> GuardDecision: ...
+
+
 #   ctx    -> aisafepy.stream.pipeline.Context
 #   return -> aisafepy.core.decisions.GuardDecision   (base class exactly, NOT the
 #             Tripwire(GuardDecision) subclass that also lives in core/decisions.py)
@@ -89,8 +91,8 @@ async def check(ctx: Context) -> GuardDecision: ...
 #   runtime; resolve via typing.get_type_hints() if you need the real objects.
 
 # guard.py's complete import list — three lines, no compile-time types:
-from aisafepy.core import GuardDecision                                 # 29
-from aisafepy.stream import Context                                     # 30
+from aisafepy.core import GuardDecision  # 29
+from aisafepy.stream import Context  # 30
 from welfareguard.adapt_integration.regex_guard import SycophancySelfHarmRegexGuard  # 32
 
 # guard.py:39 — runs at module import:
