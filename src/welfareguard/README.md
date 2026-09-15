@@ -32,13 +32,13 @@ from aisafepy.stream import Context
 import welfareguard
 
 # COMPILE TIME — once, at startup. Fatal on failure; never falls back to a stub.
-welfareguard.initialize(cluster)          # cluster: aisafepy.adapt.Cluster
+welfareguard.initialize(cluster)  # cluster: aisafepy.adapt.Cluster
 
 # RUNTIME — the request path. Compiles nothing.
 decision = asyncio.run(welfareguard.check(Context(chunk="...")))
-decision.action                      # Action: allow | block | transform | escalate
-decision.rationale                   # human-readable "why"
-decision.evidence["scaffold_stub"]   # False when a really-compiled artifact judged it
+decision.action  # Action: allow | block | transform | escalate
+decision.rationale  # human-readable "why"
+decision.evidence["scaffold_stub"]  # False when a really-compiled artifact judged it
 ```
 
 `check()` before `initialize()` raises `NotInitializedError` rather than
@@ -62,7 +62,7 @@ no adapter. A shape test asserts it.
 ```python
 CompiledGuardSet(
     enforcement_artifacts=(regex_artifact, classifier_artifact),  # non-empty
-    deliberative_case=case_artifact,                              # mandatory
+    deliberative_case=case_artifact,  # mandatory
 )
 ```
 
