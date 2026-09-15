@@ -45,6 +45,12 @@ Locks in: The deliberative_case pairing rule becomes a standing constraint on al
 
 Cost: Roughly 5-7 hours of adapter and wiring work in Week 2. No new dependencies, all three targets already exist in aisafepy.
 
+**Addendum, 2026-09-15 (added by the repo maintainer after approval; the decision above is unchanged):**
+
+Dependency pinning: aisafepy is currently an unpinned git reference on `main`. That is correct for Weeks 1-4, because the shape tests should break loudly on interface drift. It changes on two dates. Before the Week 5 baseline sweep, pin aisafepy to a commit SHA and hold that pin through the Week 7 experiment freeze: the mentor also maintains aisafepy, so an upstream push mid-sweep would make a harm-rate change ambiguous between our guard and upstream drift. Before the Week 8 release candidate, convert the pin to a plain version constraint, because PyPI rejects direct references in uploaded metadata.
+
+`min_precision` is computed as recall: aisafepy's own `_estimate_precision` describes it as the fraction of positives the pattern catches, with no negative set involved. Two consequences. This number must never be reported as precision in the paper. And it is distinct from `promote()`'s canary FP budget, which is precision-like; the two must not be conflated. An upstream issue will be raised against aisafepy on its own track.
+
 ## 5. Impact on aisafepy (upstream)
 
 ☑  No change needed to aisafepy. WelfareGuard only imports it.
