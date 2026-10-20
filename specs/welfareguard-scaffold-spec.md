@@ -8,12 +8,12 @@ Target consumer: Claude Code, with local read access to the `aisafepy` repo and 
 ## 1. Masterplan (context + decisions)
 
 **What this is.** A *scaffold*, not a working guardrail. It proves the interface shape between the
-WelfareGuard package, aisafepy's real types, and the Inspect harness — before ADR-001 (compiler
+WelfareGuard package, aisafepy's real types, and the Inspect harness — before [ADR-001](../docs/adr/ADR-001-compiler-targets.md) (compiler
 architecture) is Accepted. It should run end-to-end with fake verdict logic, not fake structure.
 
-**Why it exists now, before ADR-001 lands.** WelfareGuard's Week 1 pattern is to run ADR drafting and
+**Why it exists now, before [ADR-001](../docs/adr/ADR-001-compiler-targets.md) lands.** WelfareGuard's Week 1 pattern is to run ADR drafting and
 harness work in parallel, deferring only genuinely architecture-sensitive decisions. This scaffold is
-scoped to the parts that don't depend on ADR-001's outcome.
+scoped to the parts that don't depend on [ADR-001](../docs/adr/ADR-001-compiler-targets.md)'s outcome.
 
 **Repo context — do not create a new repo.** WelfareGuard is one shared repo (`welfareguard`), owned by
 Vidura Wijekoon, that all three mentees (Evals, Guardrails, Research & Comms) contribute to via PRs into
@@ -25,16 +25,16 @@ scaffold should be prepared to be added once it does — do not assume and do no
 
 | Decision | Choice | Why |
 |---|---|---|
-| Scope | Interface shell, not real guardrail logic | ADR-001 (architecture) not yet Accepted |
+| Scope | Interface shell, not real guardrail logic | [ADR-001](../docs/adr/ADR-001-compiler-targets.md) (architecture) not yet Accepted |
 | Runnability | Smoke-testable — stubs return real, well-typed fake data | Prove the interface now, not just document it |
-| Target types | Build **one**: `synthesize_regex` (Tier 1) | Simplest, least architecturally contested; matches ADR-001 draft's chosen v1 set (regex + classifier + paired deliberative_case) |
+| Target types | Build **one**: `synthesize_regex` (Tier 1) | Simplest, least architecturally contested; matches [ADR-001](../docs/adr/ADR-001-compiler-targets.md) draft's chosen v1 set (regex + classifier + paired deliberative_case) |
 | Verdict type | Use aisafepy's real `GuardDecision` (from `aisafepy.core`), not a custom shape | It's the actual shared interface across `flow`, `stream`, and `adapt` — inventing a parallel shape would be redundant and wrong |
 | Package location | Standalone package `welfareguard`, living inside the shared `welfareguard` repo | Matches PyPI end-goal; matches repo ownership above |
 | Tests | Minimal shape-assertion tests only, not full coverage | Tripwire for accidental interface drift, not a full test suite yet |
-| Harness wiring | Direct import, no registry/lookup pattern | A registry is itself an architecture decision (ADR-001's territory); direct import stays neutral |
+| Harness wiring | Direct import, no registry/lookup pattern | A registry is itself an architecture decision ([ADR-001](../docs/adr/ADR-001-compiler-targets.md)'s territory); direct import stays neutral |
 | aisafepy dependency | Import real types/interfaces (`Context`, `GuardDecision`, `Target`) where they exist; fake only the internal compile/execution logic | Deep-dive time was already spent learning `adapt`'s real shape — use it |
 | Error handling | Let real aisafepy call failures raise/crash normally — no try/except wrapping | This is scaffold code meant to surface integration breaks loudly and early, not hide them |
-| Docs | Every stub explicitly documents what's fake and why (Vidura-readable) | Vidura has ADR-001 approval authority and a scheduled walkthrough; code should be self-explanatory without live narration |
+| Docs | Every stub explicitly documents what's fake and why (Vidura-readable) | Vidura has [ADR-001](../docs/adr/ADR-001-compiler-targets.md) approval authority and a scheduled walkthrough; code should be self-explanatory without live narration |
 | Public API | Single entry point: `check()` | Callers (harness, future users) never need to know which Target type is running underneath. **Superseded by the compiler prototype:** compilation turned out to be a separate lifecycle with a separate audience, so it lives behind its own `compile()`/`initialize()` entry point rather than inside `check()`. `check()` remains the sole *runtime* entry point and its signature is unchanged. See `welfareguard-compiler-prototype-spec.md`. |
 
 **Explicitly out of scope for this pass:** `distill_classifier`, `steering_vector`, `deliberative_case`
@@ -102,14 +102,14 @@ Target.synthesize_regex(min_precision: float = 0.99)  # classmethod, confirmed s
    - fakes only the compilation-from-failures step
    - returns a real, correctly-typed `GuardDecision`
    - has a clear module/function docstring stating this is a scaffold stub, what's real vs. fake, and
-     that it implements only the `synthesize_regex` (Tier 1) path pending ADR-001
+     that it implements only the `synthesize_regex` (Tier 1) path pending [ADR-001](../docs/adr/ADR-001-compiler-targets.md)
    Import it in a scratch Python shell or quick script and confirm it runs and returns a well-formed
    `GuardDecision` before writing anything else.
 
 3. **Only after step 2 is confirmed working**, write `src/welfareguard/guard.py` with the single public
    `check()` entry point that calls into `regex_guard.py` directly (no registry). Confirm `check()`'s
    parameter type matches aisafepy's `Context` convention from Section 2 — ask before diverging from it,
-   since matching it exactly is what makes this a drop-in Tier-1 guard later per the existing ADR-002
+   since matching it exactly is what makes this a drop-in Tier-1 guard later per the existing [ADR-002](../docs/adr/ADR-002-runtime-design.md)
    worked example (`GuardPipeline` tier registration).
 
 4. **Then** write `src/welfareguard/__init__.py` exposing `check` as the package's public surface.
@@ -121,15 +121,15 @@ Target.synthesize_regex(min_precision: float = 0.99)  # classmethod, confirmed s
 6. **Last**, write `pyproject.toml` (package metadata; aisafepy as a dependency — ask the user whether
    to pin a specific commit/version or leave it unpinned for now, since this affects reproducibility)
    and a short `README.md` for the package itself, explicitly stating: this is a scaffold, which parts
-   are real vs. fake, links to ADR-001, and a note that `distill_classifier` / `steering_vector` /
-   `deliberative_case` stubs will follow the same shape once ADR-001 is Accepted.
+   are real vs. fake, links to [ADR-001](../docs/adr/ADR-001-compiler-targets.md), and a note that `distill_classifier` / `steering_vector` /
+   `deliberative_case` stubs will follow the same shape once [ADR-001](../docs/adr/ADR-001-compiler-targets.md) is Accepted.
 
 **Cross-cutting rules that apply to every file above:**
 
 - No try/except around calls into real aisafepy code. Let failures raise with their normal traceback.
 - No registry/factory/dispatch pattern anywhere. Direct imports only.
 - Every stub function/class gets a docstring stating explicitly what's fake, so this is legible to
-  Vidura without narration (he has ADR-001 approval authority and a scheduled review).
+  Vidura without narration (he has [ADR-001](../docs/adr/ADR-001-compiler-targets.md) approval authority and a scheduled review).
 - Don't touch aisafepy's own source. WelfareGuard only ever imports it.
 
 ---
@@ -142,7 +142,7 @@ Paste this into Claude Code once the aisafepy repo is cloned locally and accessi
 > the shared `welfareguard` GitHub repo (owned by Vidura Wijekoon), extending the `aisafepy` library
 > (cloned locally at [path]) into the digital minds domain (sycophancy-driven self-harm scenario). This is interface scaffolding only: it
 > should call real `aisafepy` types and constructors, but fake the actual compilation/inference logic,
-> so it can run end-to-end and prove the shape is right before ADR-001 (compiler architecture) is
+> so it can run end-to-end and prove the shape is right before [ADR-001](../docs/adr/ADR-001-compiler-targets.md) (compiler architecture) is
 > Accepted.
 >
 > Follow the attached spec doc exactly, in the build order given in Section 3 — do not generate all

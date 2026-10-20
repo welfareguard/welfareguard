@@ -20,7 +20,7 @@ Interface note
 ``GuardDecision``, and is ``async`` — matching the ``Guard`` protocol in
 ``aisafepy.stream.pipeline`` (``async __call__(ctx: Context) -> GuardDecision``)
 exactly rather than approximately. That exact match is what makes WelfareGuard
-droppable into a ``GuardPipeline``'s tier-1 list per ADR-002's worked example
+droppable into a ``GuardPipeline``'s tier-1 list per ADR-002's worked example (docs/adr/ADR-002-runtime-design.md)
 without an adapter. **This signature is fixed** and must not change as the
 compiler grows.
 """

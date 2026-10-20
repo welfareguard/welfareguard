@@ -35,7 +35,7 @@ What is REAL here
   fully-constructed instance — not a dict and not a look-alike class.
 * The class satisfies aisafepy's ``Guard`` protocol (``name``, ``tier``,
   ``async __call__``), so it is registerable as-is in a ``GuardPipeline``'s
-  ``tier1`` list per ADR-002's worked example.
+  ``tier1`` list per ADR-002's worked example (docs/adr/ADR-002-runtime-design.md).
 
 What is FAKE here, and why
 --------------------------

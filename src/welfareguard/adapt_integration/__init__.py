@@ -2,7 +2,7 @@
 
 One module per compiler target. Only ``regex_guard`` (the ``synthesize_regex``
 Tier-1 path) exists so far; ``distill_classifier``, ``steering_vector`` and
-``deliberative_case`` modules will follow the same shape once ADR-001 is
+``deliberative_case`` modules will follow the same shape once ADR-001 (docs/adr/ADR-001-compiler-targets.md) is
 Accepted.
 
 Nothing here is re-exported. ``welfareguard.guard`` imports these modules

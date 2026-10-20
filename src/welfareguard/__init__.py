@@ -15,7 +15,7 @@ Two entry points, deliberately, with different lifecycles and audiences:
 
 This is a documented departure from the scaffold spec's "single entry point"
 row, which was written about request-path callers before a compiler prototype was
-planned. It does not route through ADR-001, whose subject is which Target types
+planned. It does not route through ADR-001 (docs/adr/ADR-001-compiler-targets.md), whose subject is which Target types
 are in v1 scope rather than public API surface.
 
     import asyncio

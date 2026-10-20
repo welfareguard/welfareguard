@@ -8,7 +8,7 @@ Deliberate deviation from the scaffold spec: its locked table says *"Public API 
 Single entry point: ``check()``"*. That row was written about request-path
 callers before a compiler prototype was planned. A compile-time API has a
 different audience and a different lifecycle, so it is a second entry point by
-design, not by drift. It does not route through ADR-001, whose subject is which
+design, not by drift. It does not route through ADR-001 (docs/adr/ADR-001-compiler-targets.md), whose subject is which
 Target types are in v1 scope rather than public API surface.
 
 ``compile`` shadows the Python builtin inside this module. The name is mandated

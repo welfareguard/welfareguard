@@ -3,7 +3,7 @@
 These exist so failures are **loud, never silent**. A guard that comes up
 serving traffic with an artifact enforcing nothing is worse than one that
 refuses to come up at all: the first looks deployed and is not, which is exactly
-the degraded-silently failure mode ADR-001's pairing constraint was written to
+the degraded-silently failure mode ADR-001's pairing constraint (docs/adr/ADR-001-compiler-targets.md) was written to
 prevent.
 
 Every error here is therefore intended to be fatal at startup. Nothing in
