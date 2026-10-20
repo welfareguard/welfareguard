@@ -314,11 +314,12 @@ python -m ruff check src tests
 python -m pytest -v
 ```
 
-The `--no-deps` step is load-bearing. `aisafepy` is declared as an *unpinned git
-dependency on `main`* — deliberately, so the shape tests break loudly when its
-interface moves — but that is a PEP 508 direct reference, so a plain
-`pip install -e ".[dev]"` refetches aisafepy from GitHub and silently shadows your
-local editable checkout. Verify which one you actually have:
+The `--no-deps` step is load-bearing. `aisafepy` is declared as a git
+dependency *pinned to commit `c1888bf`* (see `pyproject.toml` and the ADR-001
+pinning addendum for the dates), but that is still a PEP 508 direct reference,
+so a plain `pip install -e ".[dev]"` refetches aisafepy from GitHub and silently
+shadows your local editable checkout. Check out that commit in your local
+aisafepy clone so the two agree, and verify which one you actually have:
 
 ```bash
 python -c "import aisafepy; print(aisafepy.__file__)"

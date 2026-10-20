@@ -29,17 +29,21 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 
-# Tracks aisafepy's main branch on purpose, unpinned. WelfareGuard imports
-# aisafepy's real types and never vendors or patches them, so an interface
-# change upstream should break tests/test_regex_guard_shape.py loudly and
-# immediately. A commit pin would hide exactly the drift that suite exists to
-# catch. Revisit once aisafepy cuts tagged releases.
+# Pinned to a commit per ADR-001's dependency-pinning addendum
+# (docs/adr/ADR-001-compiler-targets.md, Consequences): unpinned on main through
+# Week 4 so the shape tests break loudly on interface drift; pinned to a SHA
+# from the Week 5 baseline sweep through the Week 7 experiment freeze, so an
+# upstream push mid-sweep cannot make a harm-rate change ambiguous between our
+# guard and upstream drift. The pinned commit is aisafepy main as of 2026-08-20.
 #
-# Note: this is a PEP 508 direct reference. It installs fine from source or VCS,
-# but PyPI rejects direct references in uploaded metadata, so this line must
-# become a plain version constraint before the PyPI end-goal.
+# Note: this is still a PEP 508 direct reference. It installs fine from source
+# or VCS, but PyPI rejects direct references in uploaded metadata, so this line
+# must become a plain version constraint before the Week 8 release candidate.
+# That conversion is blocked upstream: PyPI's aisafepy 0.1.0 (May 2026) and
+# this commit carry the same version number, so "aisafepy==0.1.0" would resolve
+# to the older wheel. It needs aisafepy to tag a release at or after this SHA.
 dependencies = [
-    "aisafepy @ git+https://github.com/Vidura-Wijekoon/aisafepy@main",
+    "aisafepy @ git+https://github.com/Vidura-Wijekoon/aisafepy@c1888bfee0141e483d48cf382bf4549a6368d175",
 ]
 
 [project.optional-dependencies]
