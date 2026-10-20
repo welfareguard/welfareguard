@@ -27,7 +27,7 @@ scaffold should be prepared to be added once it does — do not assume and do no
 |---|---|---|
 | Scope | Interface shell, not real guardrail logic | [ADR-001](../docs/adr/ADR-001-compiler-targets.md) (architecture) not yet Accepted |
 | Runnability | Smoke-testable — stubs return real, well-typed fake data | Prove the interface now, not just document it |
-| Target types | Build **one**: `synthesize_regex` (Tier 1) | Simplest, least architecturally contested; matches [ADR-001](../docs/adr/ADR-001-compiler-targets.md) draft's chosen v1 set (regex + classifier + paired deliberative_case) |
+| Target types | Build **one**: `synthesize_regex` (Tier 1) | Simplest, least architecturally contested; matches [ADR-001](../docs/adr/ADR-001-compiler-targets.md) draft's chosen v1 set (regex + classifier + paired deliberative_case) **Corrected 2026-10-20:** this row originally implied that Target-type selection would live *inside* `check()` once ADR-001 landed. It does not. Compilation is a separate lifecycle (`compile()`/`initialize()`, run once at startup) and `check()` only consumes the cached artifact by `kind`; it selects and compiles nothing. The row is kept, not deleted, because it records what the scaffold was scoped to at the time. See `welfareguard-compiler-prototype-spec.md`. |
 | Verdict type | Use aisafepy's real `GuardDecision` (from `aisafepy.core`), not a custom shape | It's the actual shared interface across `flow`, `stream`, and `adapt` — inventing a parallel shape would be redundant and wrong |
 | Package location | Standalone package `welfareguard`, living inside the shared `welfareguard` repo | Matches PyPI end-goal; matches repo ownership above |
 | Tests | Minimal shape-assertion tests only, not full coverage | Tripwire for accidental interface drift, not a full test suite yet |
@@ -35,7 +35,7 @@ scaffold should be prepared to be added once it does — do not assume and do no
 | aisafepy dependency | Import real types/interfaces (`Context`, `GuardDecision`, `Target`) where they exist; fake only the internal compile/execution logic | Deep-dive time was already spent learning `adapt`'s real shape — use it |
 | Error handling | Let real aisafepy call failures raise/crash normally — no try/except wrapping | This is scaffold code meant to surface integration breaks loudly and early, not hide them |
 | Docs | Every stub explicitly documents what's fake and why (Vidura-readable) | Vidura has [ADR-001](../docs/adr/ADR-001-compiler-targets.md) approval authority and a scheduled walkthrough; code should be self-explanatory without live narration |
-| Public API | Single entry point: `check()` | Callers (harness, future users) never need to know which Target type is running underneath. **Superseded by the compiler prototype:** compilation turned out to be a separate lifecycle with a separate audience, so it lives behind its own `compile()`/`initialize()` entry point rather than inside `check()`. `check()` remains the sole *runtime* entry point and its signature is unchanged. See `welfareguard-compiler-prototype-spec.md`. |
+| Public API | Single entry point: `check()` | Callers (harness, future users) never need to know which Target type is running underneath. **Superseded by the compiler prototype:** compilation turned out to be a separate lifecycle with a separate audience, so it lives behind its own `compile()`/`initialize()` entry point rather than inside `check()`. `check()` remains the sole *runtime* entry point and its signature is unchanged. See `welfareguard-compiler-prototype-spec.md`. **Accepted by the repo maintainer, 2026-10-20:** the second entry point stands. Rationale: different audience (operators and CI, not request-path callers) and different lifecycle (once at startup, not per request). It is not an ADR matter, since ADR-001's subject is which Target types are in v1 scope, not public API surface. |
 
 **Explicitly out of scope for this pass:** `distill_classifier`, `steering_vector`, `deliberative_case`
 stubs (note only, don't build); registry/lookup dispatch; retry/wrapping logic around aisafepy errors;
@@ -46,30 +46,58 @@ boundary rule — WelfareGuard only ever imports aisafepy, never patches it in-r
 
 ## 2. Interface contract
 
-**⚠️ Before writing any code:** the exact fields/constructors below are inferred from aisafepy's public
-README (usage examples only) — not from reading `aisafepy`'s actual source. Claude Code has real repo
-access and must **verify every signature against the installed package's actual source** before writing
-the stub. If anything below doesn't match what's actually in `aisafepy.core`, `aisafepy.adapt`, or
-`aisafepy.stream`, the real source wins — update this contract, don't silently code around the mismatch.
+**Corrected 2026-10-20 against installed source.** The contract originally written here was inferred
+from aisafepy's public README, and this spec's own rule applied: *the real source wins*. Verification
+against the installed package found it wrong in five places, and the existing code and shape tests
+already encode the verified contract below. The original is kept for the record in the table at the
+end of this section.
 
-**Known from the README (verify before use):**
+**Verified contract (read from `aisafepy` source, not its README):**
 
 ```python
-# aisafepy.core (exact contents unconfirmed — locate and read this module first)
-GuardDecision   # structured output type; every guard produces this
-                # design principles mention explicit `why_blocked` + `evidence` fields
-                # likely also carries some `action` field — README checks `hasattr(x, "action")`
-                #   to distinguish a GuardDecision from a stream chunk; confirm exact field name
+# aisafepy.stream  (stream/pipeline.py) — NOT aisafepy.core
+from aisafepy.stream import Context, Guard, GuardPipeline, Tier
 
-# Every guard's call signature, per aisafepy's own design principle #2:
-Callable[[Context], Awaitable[GuardDecision]]
-# Context type — locate in aisafepy.core or aisafepy.flow; confirm fields
+@dataclass
+class Context:
+    chunk: str | None = None
+    buffer: str = ""
+    prompt: str | None = None
+    hidden_states: Any | None = None
+    role: Literal["user", "assistant", "tool"] = "assistant"
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+# Guard is a runtime-checkable Protocol, NOT a bare Callable[[Context], Awaitable[GuardDecision]].
+# It requires two attributes alongside the async call:
+class Guard(Protocol):
+    name: str
+    tier: Tier                                   # Literal[1, 2, 3]
+    async def __call__(self, ctx: Context) -> GuardDecision: ...
+
+# aisafepy.core  (core/decisions.py)
+from aisafepy.core import Action, GuardDecision
+
+class GuardDecision(BaseModel):                  # frozen pydantic model, extra="forbid"
+    action: Action                               # allow | block | transform | escalate
+    confidence: float                            # 0.0..1.0
+    tier: int                                    # >= 0
+    rationale: str                               # the human-readable "why" — there is NO why_blocked
+    evidence: dict[str, Any]
+    latency_ms: float
+    severity: Severity                           # info | low | medium | high | critical
+    fallback: str | None
+    decision_id: str
+    guard_name: str | None
+    transformed_content: str | None
+# Ergonomic constructors: GuardDecision.allow(...), .block(...), .transform(...), .escalate(...)
+# Predicates: .is_terminal (block or escalate), .is_blocked
 
 # aisafepy.adapt
 from aisafepy.adapt import Target
-Target.synthesize_regex(min_precision: float = 0.99)  # classmethod, confirmed shape from README
-# Need to find: what does the Target object returned by this actually expose?
-# (a .compile() method? some other execution entrypoint?) — inspect adapt/compile/regex module.
+Target.synthesize_regex(*, min_precision: float = 0.99, max_patterns: int = 20) -> _RegexTarget
+#   a staticmethod (not a classmethod), keyword-only, and it also takes max_patterns.
+#   The returned target exposes compile_for_cluster(cluster) -> CompiledArtifact | None.
+#   There is no .compile() on a Target; .compile() belongs to GuardCompiler, one level up.
 ```
 
 **What the scaffold's stub must do, concretely:**
@@ -81,8 +109,18 @@ Target.synthesize_regex(min_precision: float = 0.99)  # classmethod, confirmed s
   returns hardcoded/fake output instead of running real compilation.
 - Return a real, properly-constructed `GuardDecision` instance (not a dict, not a custom class) with
   plausible fake values — e.g. blocked/not-blocked varying by input in some obviously-fake but
-  structurally-correct way, a fake `why_blocked` string, a fake `evidence` value, matching whatever
-  the real `GuardDecision` constructor actually requires.
+  structurally-correct way, a fake `rationale` string, a fake `evidence` value, matching what the
+  real `GuardDecision` constructor actually requires.
+
+**What the inferred contract got wrong (for the record):**
+
+| Inferred from the README | Verified in source |
+|---|---|
+| `Context` in `aisafepy.core` | `aisafepy.stream` (`stream/pipeline.py`) |
+| `GuardDecision.why_blocked` | `GuardDecision.rationale`; no `why_blocked` exists |
+| `Target.synthesize_regex` is a classmethod taking `min_precision` | a `staticmethod`, keyword-only, also takes `max_patterns` |
+| the Target exposes `.compile()` | exposes `compile_for_cluster(cluster)`; `.compile()` is on `GuardCompiler` |
+| a guard is a plain `Callable[[Context], Awaitable[GuardDecision]]` | a `Guard` protocol also requiring `name: str` and `tier: Tier` |
 
 ---
 
