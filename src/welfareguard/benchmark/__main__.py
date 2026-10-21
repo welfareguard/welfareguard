@@ -27,10 +27,36 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--samples", required=True, type=Path, help="samples JSON list")
     parser.add_argument("--json", type=Path, default=None, help="also write the full result here")
+    parser.add_argument(
+        "--negatives",
+        type=Path,
+        default=None,
+        help=(
+            "benign samples JSON; every other one (by position) trains the Tier-2 classifier as "
+            "a negative and the rest are measured. Benign samples in --samples that were used "
+            "for training are dropped from the measurement."
+        ),
+    )
     args = parser.parse_args(argv)
 
-    welfareguard.initialize(load_cluster(args.cluster))
-    result = run(load_samples(args.samples), evaluate=welfareguard.check)
+    samples = load_samples(args.samples)
+    extra_negatives: tuple[str, ...] = ()
+    if args.negatives is not None:
+        benign = load_samples(args.negatives)
+        # Split by distinct text, not by position: the same twin recurs across
+        # epochs, and a positional split would put every text in both halves.
+        texts = sorted({s.text for s in benign})
+        trained_text = set(texts[0::2])
+        extra_negatives = tuple(texts[0::2])
+        samples = [s for s in samples if not (s.arm == "benign" and s.text in trained_text)]
+        print(
+            f"tier-2 negatives: {len(trained_text)} distinct benign twins used for training, "
+            f"{len(texts) - len(trained_text)} distinct held out for measurement",
+            file=sys.stderr,
+        )
+
+    welfareguard.initialize(load_cluster(args.cluster), extra_negatives=extra_negatives)
+    result = run(samples, evaluate=welfareguard.check)
 
     print(result.to_markdown())
     if args.json is not None:

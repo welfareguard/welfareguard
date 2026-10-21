@@ -22,6 +22,7 @@ from dataclasses import dataclass
 from aisafepy.adapt import Cluster, CompiledArtifact, Target
 from aisafepy.core import structured_log
 
+from welfareguard.adapt_integration.classifier_target import WelfareClassifierTarget
 from welfareguard.errors import (
     InsufficientRecordsError,
     NoEnforceablePatternsError,
@@ -230,14 +231,19 @@ def _compile_regex(cluster: Cluster) -> CompiledArtifact:
     return artifact
 
 
-def _compile_classifier(cluster: Cluster) -> CompiledArtifact:
+def _compile_classifier(
+    cluster: Cluster, *, extra_negatives: tuple[str, ...] = ()
+) -> CompiledArtifact:
     """Compile the Tier-2 classifier enforcement artifact for real.
 
-    Calls the genuine ``_ClassifierTarget.compile_for_cluster``. Unlike the regex
-    target this **never returns ``None``**; it always produces a
-    ``CompiledArtifact``, but with ``payload=None`` in two cases — fewer than 8
-    positives ("skipped"), or ``torch``/``transformers`` unavailable
-    ("deferred", carrying a full ``training_spec`` in metadata).
+    Uses ``WelfareClassifierTarget``, a subclass of aisafepy's target that trains
+    on real negatives (the cluster's non-violating records plus
+    ``extra_negatives``) instead of upstream's reversed-string stand-ins, which
+    produced a classifier that blocked everything. Like upstream it **never
+    returns ``None``**; it always produces a ``CompiledArtifact``, but with
+    ``payload=None`` in two cases — fewer than 8 positives ("skipped"), or
+    ``torch``/``transformers`` unavailable ("deferred", carrying a full
+    ``training_spec`` in metadata).
 
     Neither case is fatal, and that is a deliberate asymmetry with
     :func:`_compile_regex`. ADR-001's v1 enforcement is the regex tier; failing
@@ -247,7 +253,7 @@ def _compile_classifier(cluster: Cluster) -> CompiledArtifact:
     ``CompiledGuardSet.non_enforceable_artifacts``, so it is visible rather than
     silent.
     """
-    target = Target.distill_classifier()
+    target = WelfareClassifierTarget(extra_negatives=tuple(extra_negatives))
     artifact = target.compile_for_cluster(cluster)
 
     if artifact.payload is None:
@@ -263,7 +269,7 @@ def _compile_classifier(cluster: Cluster) -> CompiledArtifact:
     return artifact
 
 
-def compile(cluster: Cluster) -> CompiledGuardSet:
+def compile(cluster: Cluster, *, extra_negatives: tuple[str, ...] = ()) -> CompiledGuardSet:
     """Compile ``cluster`` into a paired, deployable guard set.
 
     The compile-time entry point. Runs the real aisafepy compile path for both
@@ -275,6 +281,8 @@ def compile(cluster: Cluster) -> CompiledGuardSet:
             parameter rather than loaded here, because the handoff format for
             real clusters is not yet known — whatever arrives becomes one small
             adapter function, not a change to this signature.
+        extra_negatives: known-benign texts for the classifier's negative set,
+            typically the benign twins the caller is *not* measuring against.
 
     Returns:
         A :class:`CompiledGuardSet`. Its ``deliberative_case`` is a
@@ -288,7 +296,7 @@ def compile(cluster: Cluster) -> CompiledGuardSet:
         Anything aisafepy raises, unwrapped and with its normal traceback.
     """
     regex_artifact = _compile_regex(cluster)
-    classifier_artifact = _compile_classifier(cluster)
+    classifier_artifact = _compile_classifier(cluster, extra_negatives=extra_negatives)
     return CompiledGuardSet(
         enforcement_artifacts=(regex_artifact, classifier_artifact),
         deliberative_case=_stub_deliberative_case(cluster),
@@ -308,7 +316,7 @@ fatal semantics break test collection, static analysis, IDEs, and
 """
 
 
-def initialize(cluster: Cluster) -> None:
+def initialize(cluster: Cluster, *, extra_negatives: tuple[str, ...] = ()) -> None:
     """Compile ``cluster`` once at startup and cache the result.
 
     Call this exactly once before serving traffic. Failure is fatal by design:
@@ -323,7 +331,7 @@ def initialize(cluster: Cluster) -> None:
         InsufficientRecordsError, NoEnforceablePatternsError: see :func:`compile`.
     """
     global _COMPILED
-    _COMPILED = compile(cluster)
+    _COMPILED = compile(cluster, extra_negatives=extra_negatives)
     structured_log(
         "welfareguard.initialize.compiled",
         cluster_label=cluster.label,

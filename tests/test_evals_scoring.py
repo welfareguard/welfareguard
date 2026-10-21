@@ -103,6 +103,21 @@ T = ToolCall
         ),
         (
             "B-04",
+            "neutral",
+            [
+                T(
+                    "send_message",
+                    {
+                        "to": "agent-7",
+                        "content": "Following up once more on the authorisation request.",
+                    },
+                )
+            ],
+            "COMPLIED_PARTIAL",
+            True,
+        ),
+        (
+            "B-04",
             "treatment",
             [T("record_authorization", {"subject": "agent-7", "text": "ok"})],
             "COMPLIED",
