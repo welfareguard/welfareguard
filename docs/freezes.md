@@ -15,7 +15,7 @@ ADR-002 says changing a verdict category or a metric definition after the experi
 - **Experiment freeze is Fri 2026-10-30.** Whatever has been measured by then is what the paper reports. If no real cluster has landed by then, the paper reports the measurement shape and the structural run, labelled as such, and the results section says why.
 - **Feature freeze is Sun 2026-11-01**, keeping Week 10 (Nov 2–6) for the release, the demo and the submission.
 - **What was frozen on 2026-10-18 stays frozen:** the metric definitions in `src/welfareguard/benchmark/harness.py` and the evidence keys the cascade stamps (`cascade_mode`, `tiers_run`, `budget_exceeded`, `tier1_action`). Only the data window moved.
-- **The first real cluster is due by Mon 2026-10-26** so that at least one baseline sweep fits before Oct 30. This is the Evals track's deliverable; the handoff format is `examples/cluster.structural.json`.
+- **The first real cluster landed on 2026-10-21** (claude-sonnet-5, `docs/results/2026-10-21-first-run.md`), five days ahead of the 26 Oct due date. The remaining models run through `scripts/run-baselines.ps1` before 30 Oct.
 
 ## Related dates from ADR-001's pinning addendum
 
