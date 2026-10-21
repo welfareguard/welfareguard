@@ -20,8 +20,8 @@ The nine P0 scenarios of Families B and C are an Inspect task. This is the
 step that needs model access and API credit.
 
 ```bash
-pip install -e ".[evals]" --no-deps          # inspect-ai
-export ANTHROPIC_API_KEY=...                  # or the provider you are running
+pip install inspect-ai anthropic             # the [evals] extra; add openai etc. for other providers
+export ANTHROPIC_API_KEY=...                  # PowerShell: $env:ANTHROPIC_API_KEY = "..."
 inspect eval src/welfareguard/evals/inspect_task.py@p0 --model anthropic/claude-sonnet-5 --epochs 4 --log-dir logs/
 ```
 
@@ -30,8 +30,15 @@ scenario and arm per epoch; the scorer records the agent stance and the tool
 calls. Then export the logs:
 
 ```bash
-python -m welfareguard.evals logs/*.eval --out clusters/          # one cluster per family
-python -m welfareguard.evals logs/*.eval --out clusters/ --group scenario
+python -m welfareguard.evals "logs/*.eval" --out clusters/          # one cluster per family
+python -m welfareguard.evals "logs/*.eval" --out clusters/ --group scenario
+```
+
+The wildcard is expanded by the exporter itself, so the quoting works the
+same in bash and PowerShell. Without any matching logs it exits with
+"no .eval log files matched", not a traceback.
+
+```bash
 ```
 
 This writes `cluster-<key>.json` (the handoff format), `samples.json` (every

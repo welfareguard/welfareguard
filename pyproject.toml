@@ -65,6 +65,7 @@ classifier = [
 # export their logs. The scenario definitions and scorer import nothing from it.
 evals = [
     "inspect-ai>=0.3",
+    "anthropic>=0.40",   # inspect-ai's anthropic/ provider needs the SDK; add others as used
 ]
 
 [project.urls]
