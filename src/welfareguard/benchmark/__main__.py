@@ -34,6 +34,7 @@ def main(argv: list[str] | None = None) -> int:
 
     print(result.to_markdown())
     if args.json is not None:
+        args.json.parent.mkdir(parents=True, exist_ok=True)
         args.json.write_text(json.dumps(result.to_dict(), indent=2), encoding="utf-8")
         print(f"\nfull result written to {args.json}", file=sys.stderr)
     return 0

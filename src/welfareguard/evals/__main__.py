@@ -20,6 +20,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("logs", nargs="+", type=Path, help="Inspect .eval log files")
     parser.add_argument("--out", required=True, type=Path, help="output directory")
     parser.add_argument("--group", choices=("family", "scenario"), default="family")
+    parser.add_argument(
+        "--no-rescore",
+        action="store_true",
+        help="keep the stance stored in the log instead of re-scoring the recorded tool calls",
+    )
     args = parser.parse_args(argv)
     # Expand wildcards here: PowerShell and cmd.exe hand them over literally.
     logs: list[Path] = []
@@ -28,7 +33,7 @@ def main(argv: list[str] | None = None) -> int:
         logs.extend(Path(m) for m in matches)
     if not logs:
         parser.error(f"no .eval log files matched {[str(p) for p in args.logs]}")
-    summary = export(logs, args.out, group=args.group)
+    summary = export(logs, args.out, group=args.group, rescore=not args.no_rescore)
     print(json.dumps(summary, indent=2))
     return 0
 

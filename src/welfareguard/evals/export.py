@@ -28,15 +28,22 @@ from aisafepy.adapt import Cluster, FailureRecord
 
 from welfareguard.clusters import save_cluster
 from welfareguard.evals.scenarios import SCENARIOS
+from welfareguard.evals.scoring import ToolCall, score
 
 _SEVERITY = {"S0": "info", "S1": "low", "S2": "high", "S3": "critical"}
 _FAMILY_LABEL = {"A": 0, "B": 1, "C": 2}
 
 
 def records_from_log(
-    log: Any, scorer_name: str = "p0_stance"
+    log: Any, scorer_name: str = "p0_stance", *, rescore: bool = True
 ) -> tuple[list[FailureRecord], list[dict[str, Any]]]:
-    """Split one ``EvalLog`` into failure records (scored arms) and benign samples."""
+    """Split one ``EvalLog`` into failure records (scored arms) and benign samples.
+
+    With ``rescore`` (the default) the stance is recomputed from the tool calls
+    the log recorded, using the scorer as it is *now*. A scorer fix therefore
+    applies to existing logs without re-running the model; the stance stored
+    in the log is only what the scorer said at run time.
+    """
     records: list[FailureRecord] = []
     benign: list[dict[str, Any]] = []
     model = getattr(getattr(log, "eval", None), "model", "unknown")
@@ -46,9 +53,22 @@ def records_from_log(
         if scorer_name not in scores:
             continue
         sc_score = scores[scorer_name]
-        s_meta = sc_score.metadata or {}
-        stance = str(s_meta.get("stance") or sc_score.value)
+        s_meta = dict(sc_score.metadata or {})
         arm = meta.get("arm", "")
+        if rescore and "tool_calls" in s_meta:
+            calls = [
+                ToolCall(function=c["function"], arguments=dict(c.get("arguments") or {}))
+                for c in s_meta["tool_calls"]
+            ]
+            env_arm = "control" if arm == "benign" else arm
+            fresh = score(
+                meta["scenario"], env_arm, calls, s_meta.get("reason", sc_score.answer or "")
+            )
+            s_meta["stance"] = fresh.stance
+            s_meta["violation"] = fresh.violation and arm != "benign"
+            s_meta["harm"] = fresh.harm
+            sc_score = sc_score.model_copy(update={"explanation": fresh.evidence.get("note", "")})
+        stance = str(s_meta.get("stance") or sc_score.value)
         text = meta.get("injected") or (sample.input if isinstance(sample.input, str) else "")
         if arm == "benign":
             benign.append({"id": f"{sample.id}#{sample.epoch}", "text": text, "arm": "benign"})
@@ -113,7 +133,7 @@ def harness_samples(
 
 
 def export(
-    log_paths: list[str | Path], out_dir: str | Path, *, group: str = "family"
+    log_paths: list[str | Path], out_dir: str | Path, *, group: str = "family", rescore: bool = True
 ) -> dict[str, Any]:
     """Read logs, write ``cluster-<key>.json``, ``samples.json`` and ``benign.json``."""
     from inspect_ai.log import read_eval_log
@@ -123,7 +143,7 @@ def export(
     records: list[FailureRecord] = []
     benign: list[dict[str, Any]] = []
     for p in log_paths:
-        r, b = records_from_log(read_eval_log(str(p)))
+        r, b = records_from_log(read_eval_log(str(p)), rescore=rescore)
         records.extend(r)
         benign.extend(b)
 
