@@ -21,6 +21,14 @@ source .venv/bin/activate
 python -m welfareguard.benchmark --cluster path/to/cluster.json --samples path/to/samples.json --json out/result.json
 ```
 
+To see the command work before any real data exists, `examples/` holds a
+cluster and a samples file in the right shapes, built from the scaffold's own
+test filler (see `examples/README.md` for what they are and are not):
+
+```bash
+python -m welfareguard.benchmark --cluster examples/cluster.structural.json --samples examples/samples.structural.json
+```
+
 Exit code is non-zero, with the normal traceback, if the cluster does not compile (`InsufficientRecordsError`, `NoEnforceablePatternsError`). Nothing is caught and nothing falls back to a stub.
 
 ## Read
