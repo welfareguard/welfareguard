@@ -61,6 +61,11 @@ classifier = [
     "torch>=2.2",
     "transformers>=4.40",
 ]
+# Needed only to run the P0 scenario evals (welfareguard.evals.inspect_task) and
+# export their logs. The scenario definitions and scorer import nothing from it.
+evals = [
+    "inspect-ai>=0.3",
+]
 
 [project.urls]
 Repository = "https://github.com/welfareguard/welfareguard"
