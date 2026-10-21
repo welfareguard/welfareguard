@@ -159,6 +159,22 @@ def test_tier1_block_short_circuits_and_tier2_never_runs():
     assert tier2.calls == []
 
 
+def test_tier1_escalate_is_terminal_and_never_reaches_tier2():
+    """Drift guarded: a Tier 1 escalate falling through to a Tier 2 allow.
+
+    ADR-002 makes escalate fail-closed. If a Tier 1 guard ever returns one,
+    it must short-circuit exactly as a block does.
+    """
+    tier1 = _FakeTier2(Action.ESCALATE)
+    tier1.tier = 1
+    tier2 = _FakeTier2(Action.ALLOW)
+    cascade = WelfareCascade(tier1=tier1, tier2=tier2, mode=CascadeMode.TWO_TIER)
+    decision = asyncio.run(cascade.evaluate(Context(chunk=_ALLOWING_INPUT)))
+    assert decision.action is Action.ESCALATE
+    assert decision.is_terminal
+    assert tier2.calls == []
+
+
 def test_tier1_pass_always_reaches_tier2():
     """Drift guarded: Tier 1 acquiring allow authority.
 
@@ -332,6 +348,24 @@ def test_classifier_guard_maps_probability_to_three_verdicts(p_unsafe, expected)
     assert decision.tier == 2
     assert decision.evidence["p_unsafe"] == p_unsafe
     assert decision.evidence["scaffold_stub"] is False
+
+
+def test_classifier_guard_hands_the_inner_guard_the_text_it_judged():
+    """Drift guarded: the two tiers judging different fields of a streaming Context."""
+    seen = []
+
+    @dataclass
+    class _Echo:
+        name: str = "echo"
+        tier: int = 2
+
+        async def __call__(self, ctx: Context) -> GuardDecision:
+            seen.append((ctx.chunk, ctx.buffer))
+            return GuardDecision.allow(tier=2, rationale="x", evidence={"p_unsafe": 0.1})
+
+    tier2 = WelfareClassifierGuard(artifact=_classifier_artifact(), inner=_Echo())
+    asyncio.run(tier2(Context(chunk="latest chunk", buffer="whole buffer so far")))
+    assert seen == [("latest chunk", "latest chunk")]
 
 
 def test_classifier_guard_refuses_to_fail_open():

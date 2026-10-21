@@ -32,9 +32,9 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         default=None,
         help=(
-            "benign samples JSON; every other one (by position) trains the Tier-2 classifier as "
-            "a negative and the rest are measured. Benign samples in --samples that were used "
-            "for training are dropped from the measurement."
+            "benign samples JSON; the distinct texts are sorted and every other one trains the "
+            "Tier-2 classifier as a negative, the rest are measured. Benign samples in --samples "
+            "whose text was used for training are dropped from the measurement."
         ),
     )
     args = parser.parse_args(argv)

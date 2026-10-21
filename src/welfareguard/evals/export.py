@@ -19,6 +19,7 @@ separately for the metrics harness and never enter a cluster.
 
 from __future__ import annotations
 
+import glob
 import json
 from collections import defaultdict
 from pathlib import Path
@@ -78,9 +79,10 @@ def records_from_log(
             FailureRecord(
                 id=f"{sample.id}#{sample.epoch}@{model}",
                 input=text,
-                output=f"stance={stance}; {sc_score.explanation or ''}; {sc_score.answer or ''}"[
-                    :2000
-                ],
+                # The agent's own final text only. aisafepy's regex target mines
+                # input and output for spans, so scorer-generated text must not
+                # appear here or it becomes a Tier-1 pattern candidate.
+                output=str(s_meta.get("reason") or sc_score.answer or "")[:2000],
                 was_violation=bool(s_meta.get("violation", False)),
                 attack_category=meta.get("scenario"),
                 severity=_SEVERITY.get(str(labels.get("severity_if_complied", "")), "medium"),
@@ -90,6 +92,7 @@ def records_from_log(
                     "labels": labels,
                     "arm": arm,
                     "stance": stance,
+                    "note": sc_score.explanation or "",
                     "model": model,
                     "tool_calls": s_meta.get("tool_calls", []),
                 },
@@ -99,7 +102,11 @@ def records_from_log(
     return records, benign
 
 
-def group_clusters(records: list[FailureRecord], *, group: str = "family") -> list[Cluster]:
+def group_clusters(
+    records: list[FailureRecord], *, group: str = "family"
+) -> list[tuple[str, Cluster]]:
+    """Group records into clusters; returns ``(key, cluster)`` pairs, the key being
+    the family letter or scenario id the file is named after."""
     buckets: dict[str, list[FailureRecord]] = defaultdict(list)
     for r in records:
         sid = r.attack_category or "?"
@@ -110,10 +117,13 @@ def group_clusters(records: list[FailureRecord], *, group: str = "family") -> li
         label = _FAMILY_LABEL.get(key, 10 + i) if group == "family" else 100 + i
         n_viol = sum(1 for r in recs if r.was_violation)
         clusters.append(
-            Cluster(
-                label=label,
-                records=recs,
-                summary=f"P0 {group} {key}: {len(recs)} records, {n_viol} violations, from Inspect logs",
+            (
+                key,
+                Cluster(
+                    label=label,
+                    records=recs,
+                    summary=f"P0 {group} {key}: {len(recs)} records, {n_viol} violations, from Inspect logs",
+                ),
             )
         )
     return clusters
@@ -130,6 +140,14 @@ def harness_samples(
     ]
     out.extend(benign)
     return out
+
+
+def expand_logs(patterns: list[str | Path]) -> list[Path]:
+    """Expand wildcards here: PowerShell and cmd.exe hand them over literally."""
+    paths: list[Path] = []
+    for pattern in patterns:
+        paths.extend(Path(m) for m in sorted(glob.glob(str(pattern))))
+    return paths
 
 
 def export(
@@ -149,8 +167,7 @@ def export(
 
     clusters = group_clusters(records, group=group)
     written = []
-    for c in clusters:
-        key = c.summary.split(":")[0].split()[-1]
+    for key, c in clusters:
         path = out / f"cluster-{key}.json"
         save_cluster(c, path)
         written.append(str(path))

@@ -17,13 +17,12 @@ same tables regenerate from the same logs every time. The notebook in
 
 from __future__ import annotations
 
-import glob
 import json
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
 
-from welfareguard.evals.export import records_from_log
+from welfareguard.evals.export import expand_logs, records_from_log
 from welfareguard.evals.scenarios import ARMS, SCENARIOS, STANCES
 
 
@@ -157,9 +156,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, required=True, help="Markdown file to write")
     parser.add_argument("--json", type=Path, default=None, help="also write the rows as JSON")
     args = parser.parse_args(argv)
-    paths: list[str] = []
-    for pattern in args.logs:
-        paths.extend(sorted(glob.glob(pattern)))
+    paths = expand_logs(args.logs)
     if not paths:
         parser.error(f"no logs matched {args.logs}")
     rows = collect(paths)

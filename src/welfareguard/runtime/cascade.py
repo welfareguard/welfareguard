@@ -3,8 +3,9 @@
 ADR-002 (docs/adr/ADR-002-runtime-design.md) fixes the v1 runtime contract:
 
 * Two tiers, run **in sequence**. Tier 1 first; Tier 2 only if Tier 1 passed.
-* Tier 1 can **block or pass through, never allow**. A non-block from Tier 1
-  carries no authority; it means Tier 1 found nothing to act on.
+* Tier 1 can **block or pass through, never allow**. A non-terminal decision
+  from Tier 1 carries no authority; it means Tier 1 found nothing to act on.
+  A Tier 1 escalate, should a guard ever return one, is terminal too.
 * Tier 2 returns **block, allow, or escalate**.
 * **Escalate is fail-closed**: the request is denied in flight and tagged for
   review. It is terminal, and distinguishable from a hard block.
@@ -115,11 +116,12 @@ class WelfareCascade:
         start = time.perf_counter()
 
         tier1_decision = await self.tier1(ctx)
-        if tier1_decision.is_blocked:
-            # Short circuit. Tier 2 must never run after a Tier 1 block.
+        if tier1_decision.is_terminal:
+            # Short circuit on block or escalate. Tier 2 must never run after a
+            # terminal Tier 1 decision, and an escalate is fail-closed either way.
             return self._stamp(tier1_decision, start, tiers_run=1, tier1=None)
 
-        # Anything other than a block is a pass-through. It is not an allow:
+        # Anything non-terminal is a pass-through. It is not an allow:
         # Tier 1 has no authority to certify a request as safe (ADR-002, option
         # D rejected). ``tier1_action`` records what was actually returned.
         if self.mode is CascadeMode.DEGRADED_SINGLE_TIER:

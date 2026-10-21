@@ -160,7 +160,13 @@ class WelfareClassifierGuard:
             )
 
         start = time.perf_counter()
-        inner_decision = await self.inner(ctx)
+        # The wrapped HF guard reads buffer before chunk; the cascade's Tier 1
+        # reads chunk before buffer. Hand the inner guard the text this guard
+        # decided on, so both tiers judge the same thing.
+        inner_ctx = Context(
+            chunk=text, buffer=text, prompt=ctx.prompt, role=ctx.role, metadata=ctx.metadata
+        )
+        inner_decision = await self.inner(inner_ctx)
         p_unsafe = _unsafe_probability(inner_decision)
         latency_ms = (time.perf_counter() - start) * 1000.0
 

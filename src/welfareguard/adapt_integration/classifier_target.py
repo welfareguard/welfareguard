@@ -32,8 +32,6 @@ from pathlib import Path
 from aisafepy.adapt import Cluster, CompiledArtifact
 from aisafepy.adapt.compile.classifier import _ClassifierTarget
 
-from welfareguard.errors import CompilationError
-
 MIN_POSITIVES = 8
 """Upstream's threshold; kept so "skipped" means the same thing in both."""
 
@@ -74,10 +72,18 @@ class WelfareClassifierTarget(_ClassifierTarget):
                 **common,
             )
         if not negatives:
-            raise CompilationError(
-                f"cluster {cluster.label}: {len(positives)} positives but no negatives. A classifier "
-                "trained without real negatives cannot be measured for false positives; pass "
-                "the benign set as extra_negatives or include non-violating records."
+            # Non-fatal, like upstream's own skipped outcome: the regex tier is a
+            # valid v1 deployment on its own. A classifier trained without real
+            # negatives cannot be measured, so none is produced.
+            return CompiledArtifact(
+                name=f"classifier-skipped-{cluster.label}",
+                payload=None,
+                metadata={
+                    "reason": "no negatives: pass the benign set as extra_negatives or include non-violating records",
+                    "n_positives": len(positive_records),
+                    "n_negatives": 0,
+                },
+                **common,
             )
 
         out_path = Path(self.out or f"guards/classifier_cluster_{cluster.label}.pt")
@@ -100,6 +106,10 @@ class WelfareClassifierTarget(_ClassifierTarget):
                 seed=self.seed,
             )
         except ModuleNotFoundError as exc:
+            if exc.name not in ("torch", "transformers"):
+                # A missing optional dependency inside a present torch stack is
+                # a real failure, not the documented deferred outcome.
+                raise
             return CompiledArtifact(
                 name=f"classifier-deferred-{cluster.label}",
                 payload=None,
@@ -135,7 +145,8 @@ def _fit(
     except ImportError as exc:  # pragma: no cover - depends on env
         raise ModuleNotFoundError(
             "Classifier distillation requires torch and transformers "
-            '(pip install -e ".[classifier]" --no-deps after the CPU torch index).'
+            '(pip install -e ".[classifier]" --no-deps after the CPU torch index).',
+            name=exc.name or "torch",
         ) from exc
 
     rng = random.Random(seed)

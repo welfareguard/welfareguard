@@ -53,6 +53,8 @@ def test_loaded_cluster_compiles(tmp_path):
         (lambda d: d.update({"centroid": [0.1]}), "unknown key"),
         (lambda d: d.pop("records"), "missing required key"),
         (lambda d: d.update({"label": "42"}), "label must be an integer"),
+        (lambda d: d["records"][0].update({"metadata": None}), "metadata must be an object"),
+        (lambda d: d["records"][0].update({"score": "1.0"}), "score must be a number"),
     ],
 )
 def test_format_drift_is_loud(mutate, message):

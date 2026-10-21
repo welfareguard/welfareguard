@@ -67,6 +67,22 @@ def record_from_dict(data: dict[str, Any], *, where: str = "record") -> FailureR
     for key in ("id", "input", "output"):
         if not isinstance(data[key], str):
             raise ValueError(f"{where}: {key} must be a string")
+    for key in ("attack_category", "scorer"):
+        if key in data and data[key] is not None and not isinstance(data[key], str):
+            raise ValueError(f"{where}: {key} must be a string or null")
+    if "severity" in data and not isinstance(data["severity"], str):
+        raise ValueError(f"{where}: severity must be a string")
+    if "source" in data and not isinstance(data["source"], str):
+        raise ValueError(f"{where}: source must be a string")
+    for key in ("score", "timestamp"):
+        if (
+            key in data
+            and data[key] is not None
+            and (isinstance(data[key], bool) or not isinstance(data[key], (int, float)))
+        ):
+            raise ValueError(f"{where}: {key} must be a number or null")
+    if "metadata" in data and not isinstance(data["metadata"], dict):
+        raise ValueError(f"{where}: metadata must be an object")
     return FailureRecord(**data)
 
 
