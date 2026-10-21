@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "welfareguard"
-version = "0.0.1"
+version = "1.0.0rc1"
 description = "Eval-to-guardrail pipeline for nonhuman welfare in agentic AI systems (scaffold)"
 readme = "src/welfareguard/README.md"
 license = { text = "Apache-2.0" }
@@ -18,7 +18,7 @@ keywords = [
     "llm",
 ]
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
