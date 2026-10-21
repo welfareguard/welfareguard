@@ -52,7 +52,7 @@ def _artifact(kind: str, name: str = "a", payload: object = None) -> CompiledArt
 
 
 def test_guard_set_cannot_be_built_without_a_deliberative_case():
-    """Drift guarded: the ADR-001 pairing constraint decaying into convention.
+    """Drift guarded: the ADR-001 (docs/adr/ADR-001-compiler-targets.md) pairing constraint decaying into convention.
 
     ``deliberative_case`` must be impossible to omit, not merely documented as
     required. If it ever gains a default, "ships alone" becomes expressible and

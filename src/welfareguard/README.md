@@ -13,7 +13,7 @@ digital-minds domain — specifically the sycophancy-driven self-harm scenario.
 ## Why it exists
 
 The predecessor pass was an interface-first scaffold proving the *shape* while
-ADR-001 was still in draft. ADR-001 has since landed, and this pass proves the
+[ADR-001](../../docs/adr/ADR-001-compiler-targets.md) was still in draft. [ADR-001](../../docs/adr/ADR-001-compiler-targets.md) has since landed, and this pass proves the
 *compile path*: real compilation behind a compile-time entry point, separate from
 the runtime one.
 
@@ -22,7 +22,7 @@ the runtime one.
 This is a **deliberate departure** from the scaffold spec's "single entry point:
 `check()`" row. That row was written about request-path callers before a compiler
 prototype was planned, and a compile-time API serves a different audience
-(operators and CI) on a different schedule. It does not route through ADR-001,
+(operators and CI) on a different schedule. It does not route through [ADR-001](../../docs/adr/ADR-001-compiler-targets.md),
 whose subject is which Target types are in v1 scope rather than public API
 surface.
 
@@ -32,13 +32,13 @@ from aisafepy.stream import Context
 import welfareguard
 
 # COMPILE TIME — once, at startup. Fatal on failure; never falls back to a stub.
-welfareguard.initialize(cluster)          # cluster: aisafepy.adapt.Cluster
+welfareguard.initialize(cluster)  # cluster: aisafepy.adapt.Cluster
 
 # RUNTIME — the request path. Compiles nothing.
 decision = asyncio.run(welfareguard.check(Context(chunk="...")))
-decision.action                      # Action: allow | block | transform | escalate
-decision.rationale                   # human-readable "why"
-decision.evidence["scaffold_stub"]   # False when a really-compiled artifact judged it
+decision.action  # Action: allow | block | transform | escalate
+decision.rationale  # human-readable "why"
+decision.evidence["scaffold_stub"]  # False when a really-compiled artifact judged it
 ```
 
 `check()` before `initialize()` raises `NotInitializedError` rather than
@@ -52,7 +52,7 @@ without installing it as process state.
 added: `async def check(ctx: Context) -> GuardDecision`, returning the base
 `GuardDecision` exactly. That exact match with the `Guard` protocol in
 `aisafepy.stream.pipeline` is what makes `SycophancySelfHarmRegexGuard` register
-directly in a `GuardPipeline`'s `tier1` list per ADR-002's worked example, with
+directly in a `GuardPipeline`'s `tier1` list per [ADR-002](../../docs/adr/ADR-002-runtime-design.md)'s worked example, with
 no adapter. A shape test asserts it.
 
 ## The pairing invariant
@@ -62,11 +62,11 @@ no adapter. A shape test asserts it.
 ```python
 CompiledGuardSet(
     enforcement_artifacts=(regex_artifact, classifier_artifact),  # non-empty
-    deliberative_case=case_artifact,                              # mandatory
+    deliberative_case=case_artifact,  # mandatory
 )
 ```
 
-ADR-001's binding constraint is that a `deliberative_case` must **never ship
+[ADR-001](../../docs/adr/ADR-001-compiler-targets.md)'s binding constraint is that a `deliberative_case` must **never ship
 alone**. That is enforced structurally rather than by convention:
 `deliberative_case` has no default (omitting it is a `TypeError`), and
 `__post_init__` rejects a `None` case, an empty enforcement tuple, and artifacts
@@ -144,7 +144,7 @@ records it, and stub-backed rationales carry a `SCAFFOLD STUB:` prefix.
 
 ## Classifier tier — compiled, not yet enforcing
 
-Two honest limitations, both ADR-001 v1 scope but neither finished:
+Two honest limitations, both [ADR-001](../../docs/adr/ADR-001-compiler-targets.md) v1 scope but neither finished:
 
 **It is not wired to runtime.** `check()` enforces the regex artifact only.
 Wiring the classifier needs a Tier-2 guard plus `aisafepy.stream.classifiers`
@@ -154,7 +154,7 @@ Wiring the classifier needs a Tier-2 guard plus `aisafepy.stream.classifiers`
 never returns `None`; it returns a real artifact with `payload=None` in two
 cases — fewer than 8 positives (`classifier-skipped-*`), or `torch`/
 `transformers` unavailable (`classifier-deferred-*`, carrying a full
-`training_spec` in metadata). Neither is fatal, deliberately: ADR-001's v1
+`training_spec` in metadata). Neither is fatal, deliberately: [ADR-001](../../docs/adr/ADR-001-compiler-targets.md)'s v1
 enforcement is the regex tier, and failing startup because a classifier could not
 be distilled would take down a working regex guard over a tier that is not yet
 wired. Both outcomes are reported via `structured_log` and exposed on
@@ -279,8 +279,8 @@ Build specs:
 [`welfareguard-scaffold-spec.md`](../../specs/welfareguard-scaffold-spec.md) (the
 predecessor) and
 [`welfareguard-compiler-prototype-spec.md`](../../specs/welfareguard-compiler-prototype-spec.md)
-(this pass). ADR-001 has landed; ADR-002 is referenced but is not yet in this
-repo.
+(this pass). [ADR-001](../../docs/adr/ADR-001-compiler-targets.md) and
+[ADR-002](../../docs/adr/ADR-002-runtime-design.md) are both in this repo under `docs/adr/`.
 
 ### Points a reviewer should push on
 
@@ -288,7 +288,7 @@ repo.
   flagged to Vidura separately.
 - **`CompiledGuardSet.enforcement_artifacts` is a tuple**, where the spec sketched
   a singular `enforcement_artifact`. The sketch is labelled "illustrative, not
-  prescriptive" and ADR-001's full scope compiles two targets, so the arity
+  prescriptive" and [ADR-001](../../docs/adr/ADR-001-compiler-targets.md)'s full scope compiles two targets, so the arity
   changed while the pairing invariant did not.
 - **The 8 original tests pass unmodified** — not one line changed — via an autouse
   fixture in `conftest.py` supplying the `initialize()` those tests never call. A

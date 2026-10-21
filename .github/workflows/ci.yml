@@ -1,0 +1,38 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Same ordering as src/welfareguard/README.md. aisafepy is installed
+      # first (with its own dependencies), then this package with --no-deps.
+      # A plain `pip install -e ".[dev]"` would resolve the PEP 508 direct
+      # reference in pyproject.toml and refetch aisafepy, shadowing whatever
+      # was installed in the step before. The --no-deps step is load-bearing.
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "aisafepy @ git+https://github.com/Vidura-Wijekoon/aisafepy@main"
+          python -m pip install -e . --no-deps
+          python -m pip install pytest "ruff==0.17.1"
+          python -c "import aisafepy, welfareguard; print(aisafepy.__file__); print(welfareguard.__file__)"
+
+      - name: Lint
+        run: python -m ruff check src tests
+
+      - name: Format
+        run: python -m ruff format --check
+
+      - name: Test
+        run: python -m pytest -v

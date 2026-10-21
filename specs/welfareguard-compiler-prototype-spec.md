@@ -26,10 +26,10 @@ assumed:
    **module-level import side effect**, which really does invoke `Target.synthesize_regex(...)`
    at import time. This was deliberate (fail-fast on an incompatible aisafepy), but it means
    compilation is currently triggered implicitly by the runtime path.
-3. ADR-001 has landed. Its scope is regex + classifier paired with `deliberative_case`, with the
+3. [ADR-001](../docs/adr/ADR-001-compiler-targets.md) has landed. Its scope is regex + classifier paired with `deliberative_case`, with the
    binding constraint that `deliberative_case` **must never ship alone**.
 
-**Scope note.** Build for ADR-001's full original scope. One scenario only — the digital minds
+**Scope note.** Build for [ADR-001](../docs/adr/ADR-001-compiler-targets.md)'s full original scope. One scenario only — the digital minds
 sycophancy scenario — not two. (The Week 2 task list says "2 sample scenarios"; the digital minds
 scenario was explicitly prioritized for this sprint.)
 
@@ -41,7 +41,7 @@ existing scaffold fake-cluster pattern is the stand-in until Vidura's real clust
 
 | Decision | Choice | Why |
 |---|---|---|
-| Compiler output shape | Paired `CompiledGuardSet { enforcement_artifact, deliberative_case }` | ADR-001's "never ship alone" constraint becomes structurally unrepresentable-if-violated, rather than relying on caller discipline |
+| Compiler output shape | Paired `CompiledGuardSet { enforcement_artifact, deliberative_case }` | [ADR-001](../docs/adr/ADR-001-compiler-targets.md)'s "never ship alone" constraint becomes structurally unrepresentable-if-violated, rather than relying on caller discipline |
 | `deliberative_case` field | **Mandatory, never `None`** — holds a `SCAFFOLD STUB:` value for now | An optional field lets "ships alone" happen in practice, which is exactly what the pairing decision was meant to prevent |
 | Compile input during build | The scaffold's existing fake-cluster pattern | Already honours real `min_precision`/`max_patterns` gating; swapping in Vidura's real cluster later is a data substitution, not a rewrite |
 | Thresholds | Keep scaffold placeholder values; do **not** tune | Calibration is empirical and needs real failure data plus the `promote()` canary process. Guessing now would be a guess dressed as a decision |
@@ -50,7 +50,7 @@ existing scaffold fake-cluster pattern is the stand-in until Vidura's real clust
 | New entry point | `compile()` — compile-time, returns `CompiledGuardSet` | Separate audience (operators/CI) from `check()`'s request path |
 | `_TIER1_GUARD` eager compile | **Retained, demoted** to a lightweight sanity check only | Keeps the fail-fast-on-broken-aisafepy property, decoupled from producing the real artifact |
 | Artifact lifecycle | Compiled **once**, cached, reused across all `check()` calls | Nothing changes between requests; `promote()`'s canary framing already implies deploy-and-reuse |
-| Compile failure | **Fatal** — process does not come up serving traffic | Falling back to a stub artifact in production is the degraded-silently failure mode ADR-001's pairing constraint exists to prevent |
+| Compile failure | **Fatal** — process does not come up serving traffic | Falling back to a stub artifact in production is the degraded-silently failure mode [ADR-001](../docs/adr/ADR-001-compiler-targets.md)'s pairing constraint exists to prevent |
 | Failure timing | Fatal at an explicit `initialize()`, **not at import** | Import-time fatal semantics break test collection, static analysis, IDEs, and `python -c "import x"` sanity checks for reasons unrelated to the guard |
 | Cluster input | `initialize(cluster: Cluster)` takes it as a **parameter** | Vidura's handoff format is not yet known. Keeping loading outside the startup lifecycle means one small adapter function later, not a lifecycle change |
 
@@ -58,7 +58,7 @@ existing scaffold fake-cluster pattern is the stand-in until Vidura's real clust
 entry point: `check()`"*. This spec adds a second entry point (`compile()`). That row was written
 about request-path callers before a compiler prototype was planned; a compile-time API serves a
 different audience. Richard is flagging this to Vidura in chat. It does **not** need to route
-through ADR-001, whose subject is which Target types are in v1 scope — not public API surface.
+through [ADR-001](../docs/adr/ADR-001-compiler-targets.md), whose subject is which Target types are in v1 scope — not public API surface.
 
 **Explicitly out of scope for this pass:** threshold tuning; `steering_vector`; the real
 `deliberative_case` implementation (stub only); the cluster loader/parser (format unknown — see
@@ -81,6 +81,8 @@ use, and update this contract rather than silently coding around a mismatch.
 ```python
 # src/welfareguard/guard.py:42
 async def check(ctx: Context) -> GuardDecision: ...
+
+
 #   ctx    -> aisafepy.stream.pipeline.Context
 #   return -> aisafepy.core.decisions.GuardDecision   (base class exactly, NOT the
 #             Tripwire(GuardDecision) subclass that also lives in core/decisions.py)
@@ -89,8 +91,8 @@ async def check(ctx: Context) -> GuardDecision: ...
 #   runtime; resolve via typing.get_type_hints() if you need the real objects.
 
 # guard.py's complete import list — three lines, no compile-time types:
-from aisafepy.core import GuardDecision                                 # 29
-from aisafepy.stream import Context                                     # 30
+from aisafepy.core import GuardDecision  # 29
+from aisafepy.stream import Context  # 30
 from welfareguard.adapt_integration.regex_guard import SycophancySelfHarmRegexGuard  # 32
 
 # guard.py:39 — runs at module import:
@@ -214,9 +216,9 @@ def initialize(cluster: Cluster) -> None: ...
 - **Cluster handoff format from Vidura** — unknown. Deliberately kept outside the startup
   lifecycle: `initialize(cluster: Cluster)` takes the object, so whatever format arrives becomes
   one small adapter function later rather than a change to anything in this spec.
-- **ADR-001 scope may narrow** at the next meeting, given the Evals role change. This spec builds
+- **[ADR-001](../docs/adr/ADR-001-compiler-targets.md) scope may narrow** at the next meeting, given the Evals role change. This spec builds
   for the full original scope; a narrowing would subtract work, not invalidate what's here.
 - **Stale line in the scaffold spec**: its Section 1 table says Target-type selection logic lives
-  *inside* `check()` once ADR-001 lands. Now that compilation is confirmed separate from the
+  *inside* `check()` once [ADR-001](../docs/adr/ADR-001-compiler-targets.md) lands. Now that compilation is confirmed separate from the
   runtime path, that line is misleading. Worth correcting in the scaffold spec doc so the next
   reader isn't misled.

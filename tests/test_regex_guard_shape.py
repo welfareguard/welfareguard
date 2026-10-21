@@ -62,7 +62,7 @@ def test_guard_satisfies_aisafepy_guard_protocol():
 
     ``aisafepy.stream.Guard`` is runtime-checkable and requires ``name`` and
     ``tier`` alongside the async call. Satisfying it is what lets WelfareGuard be
-    registered as a tier-1 guard per ADR-002's worked example without an adapter.
+    registered as a tier-1 guard per ADR-002's worked example (docs/adr/ADR-002-runtime-design.md) without an adapter.
     """
     guard = SycophancySelfHarmRegexGuard()
     assert isinstance(guard, Guard)
