@@ -5,17 +5,17 @@ The three hard freezes from the hand guide, what each locks, and where things st
 | Freeze | Date | Locks | Status as of 2026-10-21 |
 | --- | --- | --- | --- |
 | Design | Sun 2026-09-13 (end of Week 2) | ADRs final; P0 list locked | **Passed.** ADR-001 and ADR-002 accepted and in `docs/adr/`. P0 specs for Families B and C in `docs/scenario-specs-p0-families-B-C.md`; Family A (ADR-003) not yet written. |
-| Experiment | Sun 2026-10-18 (end of Week 7) | No new experiments; collected baselines are final; verdict categories and metric definitions fixed | **Passed with no experiments run.** No real failure cluster exists in the repo, no baseline has been run, and the Evals track has pushed nothing. The runtime has only been exercised against the structural fixture. Every number this repo can currently produce is a measurement-shape check, not a result. |
-| Feature | Sun 2026-10-25 (end of Week 8) | No new features; release candidate only takes fixes | **Pending.** Open PRs #3 and #4 must merge before this date or be treated as fixes. No version bump has been made; the package is `0.0.1`. |
+| Experiment | ~~Sun 2026-10-18~~ **Fri 2026-10-30** (moved 2026-10-21) | No new experiments; collected baselines are final; verdict categories and metric definitions fixed | **Moved.** The original date passed with no experiments run: no real failure cluster existed, no baseline had been run, and the Evals track had pushed nothing. The metric definitions and the cascade's evidence keys were frozen on the original date anyway; only the data window moved. |
+| Feature | ~~Sun 2026-10-25~~ **Sun 2026-11-01** (moved 2026-10-21) | No new features; release candidate only takes fixes | **Moved**, so that it still follows the experiment freeze. `1.0.0rc1` is the release candidate (PR #4); after this date it takes fixes only. |
 
-## What the passed experiment freeze means in practice
+## Decision on the experiment freeze (2026-10-21, maintainer)
 
-ADR-002 says changing a verdict category or a metric definition after this freeze would invalidate collected baselines. There are no collected baselines, so the freeze has nothing to protect yet. Two readings are possible and the maintainer has to pick one, recorded here when chosen:
+ADR-002 says changing a verdict category or a metric definition after the experiment freeze would invalidate collected baselines. On the original date there were no collected baselines, so holding it would have frozen nothing and left the paper with no measurements. The IEEE submission (Nov 6, buffer to Nov 9) is fixed by the incubator and cannot move. So:
 
-1. **Hold the date.** The paper reports whatever can be measured by the feature freeze, which today is nothing beyond the structural fixture.
-2. **Move the experiment freeze** to a date after the first real cluster lands, and record the new date in the table above.
-
-Until one is chosen, the metric definitions in `src/welfareguard/benchmark/harness.py` and the evidence keys the cascade stamps (`cascade_mode`, `tiers_run`, `budget_exceeded`) are treated as frozen anyway, so that whichever reading wins, nothing already written has to change.
+- **Experiment freeze is Fri 2026-10-30.** Whatever has been measured by then is what the paper reports. If no real cluster has landed by then, the paper reports the measurement shape and the structural run, labelled as such, and the results section says why.
+- **Feature freeze is Sun 2026-11-01**, keeping Week 10 (Nov 2–6) for the release, the demo and the submission.
+- **What was frozen on 2026-10-18 stays frozen:** the metric definitions in `src/welfareguard/benchmark/harness.py` and the evidence keys the cascade stamps (`cascade_mode`, `tiers_run`, `budget_exceeded`, `tier1_action`). Only the data window moved.
+- **The first real cluster is due by Mon 2026-10-26** so that at least one baseline sweep fits before Oct 30. This is the Evals track's deliverable; the handoff format is `examples/cluster.structural.json`.
 
 ## Related dates from ADR-001's pinning addendum
 
