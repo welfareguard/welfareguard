@@ -1,9 +1,10 @@
 """WelfareGuard — eval-to-guardrail pipeline for nonhuman welfare in agentic AI.
 
-**Compiler prototype.** The enforcement path now compiles for real: a ``Cluster``
-of ``FailureRecord``s in, a paired guard set out. The ``deliberative_case`` half
-of that pairing is still a ``SCAFFOLD STUB``, and the classifier tier is compiled
-but not yet wired to runtime enforcement. See ``src/welfareguard/README.md`` for
+**Runtime cascade.** The enforcement path compiles for real — a ``Cluster`` of
+``FailureRecord``s in, a paired guard set out — and ``check()`` now runs the
+ADR-002 cascade over it: Tier 1 regex, then Tier 2 classifier when one is
+enforceable, degraded single-tier otherwise. The ``deliberative_case`` half of
+the pairing is still a ``SCAFFOLD STUB``. See ``src/welfareguard/README.md`` for
 a precise real-vs-stub account.
 
 Two entry points, deliberately, with different lifecycles and audiences:
@@ -30,6 +31,7 @@ package runs a cheap ``aisafepy.adapt`` sanity call so an incompatible aisafepy
 fails at import, but it deliberately compiles **no** real artifact.
 """
 
+from welfareguard.clusters import load_cluster, save_cluster
 from welfareguard.compiler import (
     CLASSIFIER_KIND,
     DELIBERATIVE_KIND,
@@ -47,10 +49,16 @@ from welfareguard.errors import (
     WelfareGuardError,
 )
 from welfareguard.guard import check
+from welfareguard.runtime import CascadeMode, build_pipeline
 
 __all__ = [
     # runtime
     "check",
+    "CascadeMode",
+    "build_pipeline",
+    # cluster handoff
+    "load_cluster",
+    "save_cluster",
     # compile time
     "compile",
     "initialize",

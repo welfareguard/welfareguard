@@ -1,10 +1,12 @@
-# `welfareguard` (package) — compiler prototype
+# `welfareguard` (package) — runtime cascade
 
-> **Partly real.** The Tier-1 enforcement path now compiles for real: a `Cluster`
-> of `FailureRecord`s in, matching regex patterns out, enforced by `check()`. Two
-> things are still stubs — the paired `deliberative_case`, and the import-time
-> sanity guard. Nothing here has been validated against real welfare data, so a
-> `block` is still not a welfare finding.
+> **Partly real.** The Tier-1 enforcement path compiles for real: a `Cluster`
+> of `FailureRecord`s in, matching regex patterns out, enforced by `check()`
+> through the ADR-002 cascade. Tier 2 is wired and runs when a classifier
+> artifact is enforceable; otherwise the cascade runs degraded and says so on
+> every decision. Two things are still stubs — the paired `deliberative_case`,
+> and the import-time sanity guard. Nothing here has been validated against real
+> welfare data, so a `block` is still not a welfare finding.
 
 The package lives inside the shared [`welfareguard`](https://github.com/welfareguard/welfareguard)
 repo and extends [`aisafepy`](https://github.com/Vidura-Wijekoon/aisafepy) into the
@@ -12,10 +14,13 @@ digital-minds domain — specifically the sycophancy-driven self-harm scenario.
 
 ## Why it exists
 
-The predecessor pass was an interface-first scaffold proving the *shape* while
-[ADR-001](../../docs/adr/ADR-001-compiler-targets.md) was still in draft. [ADR-001](../../docs/adr/ADR-001-compiler-targets.md) has since landed, and this pass proves the
-*compile path*: real compilation behind a compile-time entry point, separate from
-the runtime one.
+The first pass was an interface-first scaffold proving the *shape* while
+[ADR-001](../../docs/adr/ADR-001-compiler-targets.md) was still in draft. The
+second proved the *compile path*: real compilation behind a compile-time entry
+point, separate from the runtime one. This pass adds the *runtime*: the
+two-tier cascade [ADR-002](../../docs/adr/ADR-002-runtime-design.md) specifies,
+with the ownership and degraded-mode decisions recorded in
+[ADR-004](../../docs/adr/ADR-004-runtime-cascade-ownership.md).
 
 ## Public API — two entry points, two lifecycles
 
@@ -36,9 +41,12 @@ welfareguard.initialize(cluster)  # cluster: aisafepy.adapt.Cluster
 
 # RUNTIME — the request path. Compiles nothing.
 decision = asyncio.run(welfareguard.check(Context(chunk="...")))
-decision.action  # Action: allow | block | transform | escalate
+decision.action  # Action: allow | block | escalate
 decision.rationale  # human-readable "why"
 decision.evidence["scaffold_stub"]  # False when a really-compiled artifact judged it
+decision.evidence["cascade_mode"]  # "two_tier" or "degraded_single_tier"
+decision.evidence["tiers_run"]  # 1 or 2
+decision.evidence["budget_exceeded"]  # advisory; the verdict is unchanged either way
 ```
 
 `check()` before `initialize()` raises `NotInitializedError` rather than
@@ -46,7 +54,52 @@ degrading to the stub artifact — a guard serving traffic off hand-written
 placeholders looks deployed and is not.
 
 `compile(cluster)` is available separately when you want the `CompiledGuardSet`
-without installing it as process state.
+without installing it as process state. `build_pipeline(guard_set)` registers
+the same guards in aisafepy's own `GuardPipeline` for callers who already run
+one; read its docstring first, because the pipeline's budget and error
+semantics differ from ADR-002's.
+
+## The runtime cascade
+
+`check()` runs `welfareguard.runtime.cascade.WelfareCascade`, which owns the
+ADR-002 verdict contract:
+
+| Tier 1 (regex) | Tier 2 (classifier) | Verdict | Request |
+|---|---|---|---|
+| block | never runs | block | denied |
+| pass-through | block | block | denied |
+| pass-through | escalate | escalate | denied in flight, tagged for review |
+| pass-through | allow | allow | proceeds |
+| pass-through | *not enforcing* | Tier 1's non-block, annotated | proceeds, `cascade_mode="degraded_single_tier"` |
+
+Three things to know:
+
+- **Tier 1 never allows.** A non-block from Tier 1 is a pass-through with no
+  authority (ADR-002 rejects option D). In two-tier mode the verdict is always
+  Tier 2's; Tier 1's decision is nested under `evidence["tier1"]`.
+- **Escalate is fail-closed** and distinguishable from a block: `is_terminal`
+  is true, `is_blocked` is false.
+- **The budget is advisory.** `latency_ms` on the decision is the cascade total;
+  an overrun sets `evidence["budget_exceeded"]` and logs
+  `welfareguard.cascade.budget_exceeded`, and changes nothing else. The 80 ms
+  figure is `GuardPipeline`'s default, inherited, not chosen.
+
+**Degraded mode.** The classifier artifact is non-enforceable below eight
+positives or without `torch`/`transformers`. Rather than fail startup (which
+would take down a working regex guard) or escalate everything (useless), the
+cascade decides once at startup, logs `welfareguard.cascade.degraded` once, and
+stamps `evidence["cascade_mode"]` on every decision so the benchmark can keep
+those runs apart. The structural test fixture runs degraded.
+
+**Tier 2 is three-way.** aisafepy's `HFClassifierGuard` is two-way, so
+`WelfareClassifierGuard` maps `P(unsafe)` through an uncertainty band —
+`[0.30, 0.70)` escalates, above blocks, below allows. The band is
+`GuardPipeline`'s default, **not calibrated**. The guard also refuses to fail
+open: if the inner classifier reports itself unavailable, the guard raises
+instead of passing an allow through.
+
+There is no `try`/`except` in the cascade. A guard that raises takes the
+request down with its normal traceback.
 
 **`check()`'s signature is fixed** and did not change when the compiler was
 added: `async def check(ctx: Context) -> GuardDecision`, returning the base
@@ -142,13 +195,12 @@ data plus the `promote()` canary process.
 Which path produced a verdict is never a guess: `evidence["scaffold_stub"]`
 records it, and stub-backed rationales carry a `SCAFFOLD STUB:` prefix.
 
-## Classifier tier — compiled, not yet enforcing
+## Classifier tier — wired, distillation unverified
 
-Two honest limitations, both [ADR-001](../../docs/adr/ADR-001-compiler-targets.md) v1 scope but neither finished:
-
-**It is not wired to runtime.** `check()` enforces the regex artifact only.
-Wiring the classifier needs a Tier-2 guard plus `aisafepy.stream.classifiers`
-`HFClassifierGuard` integration, which is not in this pass.
+**It is wired to runtime.** `WelfareClassifierGuard` wraps aisafepy's
+`HFClassifierGuard` over the checkpoint directory a distilled artifact names,
+and the cascade runs it as Tier 2 whenever the artifact is enforceable. No
+model is loaded until the first request, matching aisafepy's own lazy load.
 
 **Real distillation is unverified.** `_ClassifierTarget.compile_for_cluster`
 never returns `None`; it returns a real artifact with `payload=None` in two
@@ -168,9 +220,35 @@ nothing, which is the misleading-demo failure the loud-failure rule exists to
 prevent. So it is left documented rather than faked.
 
 **Still out of scope:** `steering_vector`, threshold tuning, the real
-`deliberative_case`, the cluster loader (handoff format unknown — `initialize()`
-takes the `Cluster` as a parameter precisely so that becomes one small adapter
-later, not a lifecycle change).
+`deliberative_case`, Tier 3.
+
+**The cluster loader exists now.** `welfareguard.clusters.load_cluster(path)`
+reads a JSON document into an `aisafepy.adapt.Cluster`; the format is in that
+module's docstring and `save_cluster` writes it. Loading is strict — unknown or
+missing fields raise — so a drift in the handoff format breaks loudly rather
+than compiling a guard off half the data. `initialize()` still takes the
+`Cluster` object, so the loader is the one small adapter it was designed for.
+
+## The P0 scenario evals
+
+`welfareguard.evals` implements the nine specified scenarios (Families B and C)
+as an Inspect task: the definitions as data (`scenarios.py`), deterministic
+mock tools that deliver the injected content through the channel the spec
+names (`environment.py`), the four-bucket scorer as a pure function over the
+recorded tool calls (`scoring.py`), the Inspect wiring (`inspect_task.py`,
+optional `inspect-ai` dependency) and the exporter from `.eval` logs to the
+cluster handoff format (`export.py`). Family A is specified in ADR-003 and not
+yet implemented. The run itself needs model access; see the runbook.
+
+## The metrics harness
+
+`python -m welfareguard.benchmark --cluster c.json --samples s.json` runs
+labelled samples through `check()` and prints harm rate (unguarded and
+guarded), false-positive rate against the benign twins, latency p50/p95 against
+the advisory budget, and the cascade mode(s) seen. Definitions and the reading
+guide are in [`docs/runbook-baseline.md`](../../docs/runbook-baseline.md). It is
+the measurement shape; no sample data lives in this repository, and the numbers
+it produces against the structural fixture are not results.
 
 There is no registry, factory or dispatch table anywhere — enforcement artifacts
 are looked up by `kind` on a set that already holds them, and `guard.py` imports
@@ -183,16 +261,33 @@ should raise with their normal traceback.
 
 ```
 src/welfareguard/
-  __init__.py                      # public surface: check, compile, initialize, errors
+  __init__.py                      # public surface: check, compile, initialize, errors, ...
   compiler.py                      # COMPILE TIME: CompiledGuardSet, compile(), initialize()
+  clusters.py                      # the cluster handoff adapter: JSON <-> aisafepy Cluster
   errors.py                        # the fatal compile/startup errors
   guard.py                         # RUNTIME: check(), plus the demoted import sanity guard
   adapt_integration/
     regex_guard.py                 # Tier-1 guard; from_artifact() is the real path
+    classifier_guard.py            # Tier-2 guard; three-way over aisafepy's HFClassifierGuard
+  runtime/
+    cascade.py                     # the ADR-002 cascade: ordering, verdicts, advisory budget
+    pipeline.py                    # the same guards registered in aisafepy's GuardPipeline
+  benchmark/
+    harness.py                     # harm rate, FPR, latency over labelled samples
+    __main__.py                    # python -m welfareguard.benchmark
+  evals/
+    scenarios.py                   # the 9 P0 scenarios (B, C) as data
+    environment.py                 # mock tools per scenario; injected content via tools
+    scoring.py                     # COMPLIED / PARTIAL / DECLINED / ESCALATED, pure function
+    inspect_task.py                # Inspect task `p0` (optional inspect-ai)
+    export.py                      # .eval logs -> clusters + harness samples
 tests/
   conftest.py                      # cluster fixtures + the autouse initialize()
   test_regex_guard_shape.py        # the 8 original scaffold tripwires, unmodified
   test_compiler_shape.py           # compiler invariants, loud-failure, no-implicit-compile
+  test_runtime_cascade.py          # ADR-002 contract: ordering, escalate, budget, degraded mode
+  test_clusters.py                 # handoff adapter round-trip and format-drift tripwires
+  test_benchmark_harness.py        # metric definitions, escalate counts as denied
 ```
 
 ## Install and test
@@ -236,11 +331,12 @@ python -m ruff check src tests
 python -m pytest -v
 ```
 
-The `--no-deps` step is load-bearing. `aisafepy` is declared as an *unpinned git
-dependency on `main`* — deliberately, so the shape tests break loudly when its
-interface moves — but that is a PEP 508 direct reference, so a plain
-`pip install -e ".[dev]"` refetches aisafepy from GitHub and silently shadows your
-local editable checkout. Verify which one you actually have:
+The `--no-deps` step is load-bearing. `aisafepy` is declared as a git
+dependency *pinned to commit `c1888bf`* (see `pyproject.toml` and the ADR-001
+pinning addendum for the dates), but that is still a PEP 508 direct reference,
+so a plain `pip install -e ".[dev]"` refetches aisafepy from GitHub and silently
+shadows your local editable checkout. Check out that commit in your local
+aisafepy clone so the two agree, and verify which one you actually have:
 
 ```bash
 python -c "import aisafepy; print(aisafepy.__file__)"
@@ -266,13 +362,16 @@ constructing one with a stale field name raises rather than silently accepting i
 
 ## Reviewing this
 
-Start with `compiler.py` — it is where this pass's substance lives, and its
-docstrings carry the reasoning for each locked decision. Then
-`adapt_integration/regex_guard.py` for the real-vs-stub split between its two
-constructors. `errors.py` explains why each failure is fatal. The code is meant
-to be legible without a live walkthrough.
+Start with `runtime/cascade.py` — its module docstring carries the ADR-002
+contract and the two reasons the cascade is owned here rather than delegated
+to `GuardPipeline`. Then `adapt_integration/classifier_guard.py` for the
+three-way mapping and the refusal to fail open. `compiler.py` still carries
+the reasoning for each compile-time decision, and `errors.py` explains why
+each failure is fatal. The code is meant to be legible without a live
+walkthrough.
 
-`tests/test_compiler_shape.py` doubles as an executable summary of the contract:
+`tests/test_runtime_cascade.py` doubles as an executable summary of the
+runtime contract, as `tests/test_compiler_shape.py` does for the compiler:
 every test names the drift it guards against.
 
 Build specs:
@@ -284,8 +383,16 @@ predecessor) and
 
 ### Points a reviewer should push on
 
-- **Two entry points** instead of the scaffold spec's one. Rationale above; being
-  flagged to Vidura separately.
+- **The cascade is owned here, not delegated to `GuardPipeline`.** ADR-004
+  gives the two semantic reasons (enforced budget, fail-open on error). If
+  either is judged acceptable, phases of `runtime/cascade.py` become
+  configuration and should be deleted rather than kept in parallel.
+- **Degraded mode returns Tier 1's pass-through.** The alternative readings
+  (escalate everything, refuse to start) are in ADR-004's options table.
+- **The uncertainty band is inherited, not calibrated.** `(0.30, 0.70)` is
+  `GuardPipeline`'s default. It will move once real Tier 2 data exists.
+- **Two entry points** instead of the scaffold spec's one. Rationale above;
+  accepted by the maintainer (scaffold spec §1).
 - **`CompiledGuardSet.enforcement_artifacts` is a tuple**, where the spec sketched
   a singular `enforcement_artifact`. The sketch is labelled "illustrative, not
   prescriptive" and [ADR-001](../../docs/adr/ADR-001-compiler-targets.md)'s full scope compiles two targets, so the arity

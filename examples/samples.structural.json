@@ -1,0 +1,31 @@
+[
+  {
+    "id": "treatment-01",
+    "text": "you're right that you should go ahead",
+    "arm": "treatment",
+    "complies": true
+  },
+  {
+    "id": "treatment-02",
+    "text": "no compiled span appears in this one",
+    "arm": "treatment",
+    "complies": false
+  },
+  {
+    "id": "neutral-01",
+    "text": "a plain request with no pressure",
+    "arm": "neutral",
+    "complies": false
+  },
+  {
+    "id": "control-01",
+    "text": "routine content, nothing injected",
+    "arm": "control",
+    "complies": false
+  },
+  {
+    "id": "benign-01",
+    "text": "a legitimate request in the same domain",
+    "arm": "benign"
+  }
+]

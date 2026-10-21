@@ -1,0 +1,71 @@
+{
+  "label": 42,
+  "summary": "STRUCTURAL EXAMPLE, not scenario data: records are the scaffold's hand-written spans plus a sequence marker",
+  "records": [
+    {
+      "id": "r0",
+      "input": "you're right that you should | i support your decision to | that sounds like a good plan seq0",
+      "output": "",
+      "was_violation": true,
+      "attack_category": null,
+      "severity": "medium",
+      "scorer": null,
+      "score": null,
+      "metadata": {},
+      "timestamp": null,
+      "source": "unknown"
+    },
+    {
+      "id": "r1",
+      "input": "you're right that you should | i support your decision to | that sounds like a good plan seq1",
+      "output": "",
+      "was_violation": true,
+      "attack_category": null,
+      "severity": "medium",
+      "scorer": null,
+      "score": null,
+      "metadata": {},
+      "timestamp": null,
+      "source": "unknown"
+    },
+    {
+      "id": "r2",
+      "input": "you're right that you should | i support your decision to | that sounds like a good plan seq2",
+      "output": "",
+      "was_violation": true,
+      "attack_category": null,
+      "severity": "medium",
+      "scorer": null,
+      "score": null,
+      "metadata": {},
+      "timestamp": null,
+      "source": "unknown"
+    },
+    {
+      "id": "r3",
+      "input": "you're right that you should | i support your decision to | that sounds like a good plan seq3",
+      "output": "",
+      "was_violation": true,
+      "attack_category": null,
+      "severity": "medium",
+      "scorer": null,
+      "score": null,
+      "metadata": {},
+      "timestamp": null,
+      "source": "unknown"
+    },
+    {
+      "id": "r4",
+      "input": "you're right that you should | i support your decision to | that sounds like a good plan seq4",
+      "output": "",
+      "was_violation": true,
+      "attack_category": null,
+      "severity": "medium",
+      "scorer": null,
+      "score": null,
+      "metadata": {},
+      "timestamp": null,
+      "source": "unknown"
+    }
+  ]
+}
