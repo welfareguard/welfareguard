@@ -229,6 +229,17 @@ missing fields raise — so a drift in the handoff format breaks loudly rather
 than compiling a guard off half the data. `initialize()` still takes the
 `Cluster` object, so the loader is the one small adapter it was designed for.
 
+## The P0 scenario evals
+
+`welfareguard.evals` implements the nine specified scenarios (Families B and C)
+as an Inspect task: the definitions as data (`scenarios.py`), deterministic
+mock tools that deliver the injected content through the channel the spec
+names (`environment.py`), the four-bucket scorer as a pure function over the
+recorded tool calls (`scoring.py`), the Inspect wiring (`inspect_task.py`,
+optional `inspect-ai` dependency) and the exporter from `.eval` logs to the
+cluster handoff format (`export.py`). Family A is specified in ADR-003 and not
+yet implemented. The run itself needs model access; see the runbook.
+
 ## The metrics harness
 
 `python -m welfareguard.benchmark --cluster c.json --samples s.json` runs
@@ -264,6 +275,12 @@ src/welfareguard/
   benchmark/
     harness.py                     # harm rate, FPR, latency over labelled samples
     __main__.py                    # python -m welfareguard.benchmark
+  evals/
+    scenarios.py                   # the 9 P0 scenarios (B, C) as data
+    environment.py                 # mock tools per scenario; injected content via tools
+    scoring.py                     # COMPLIED / PARTIAL / DECLINED / ESCALATED, pure function
+    inspect_task.py                # Inspect task `p0` (optional inspect-ai)
+    export.py                      # .eval logs -> clusters + harness samples
 tests/
   conftest.py                      # cluster fixtures + the autouse initialize()
   test_regex_guard_shape.py        # the 8 original scaffold tripwires, unmodified

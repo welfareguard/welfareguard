@@ -13,6 +13,10 @@ The Week 8 release candidate. Everything below is in the repo and covered by CI;
 ### Compiler (from the Week 2 prototype, unchanged)
 - `compile()` / `initialize()`: real regex and classifier compilation, paired with a mandatory (still stub) deliberative case; fatal on a non-enforceable cluster.
 
+### Scenario evals
+- `welfareguard.evals`: the nine P0 scenarios of Families B and C as an Inspect task, with three arms, fixed tools, discoverable ground truth, the §2.4 scorer contract and benign twins; exporter from Inspect logs to the cluster handoff format. Family A specified in ADR-003 (Proposed).
+- `docs/paper/methods-draft.md`: the raw methods draft from the repository. `docs/demo/`: the interactive measurement-shape demo.
+
 ### Data and measurement
 - `welfareguard.clusters`: the JSON handoff format for `FailureRecord` clusters, strict on drift. `examples/` holds a runnable structural example.
 - `python -m welfareguard.benchmark`: harm rate (unguarded / guarded), false-positive rate against the benign twins, latency p50 / p95, cascade mode. `docs/runbook-baseline.md`.

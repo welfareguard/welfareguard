@@ -14,11 +14,34 @@ The Tier-2 classifier additionally needs `torch` and `transformers` (`pip instal
 
 **No sample data lives in this repository.** The harness is the measurement shape; the Evals engineer's implementation commits supply the data (scenario specs §7, note on authorship).
 
-## Run
+## Step 1: run the scenarios (produces the cluster)
+
+The nine P0 scenarios of Families B and C are an Inspect task. This is the
+step that needs model access and API credit.
+
+```bash
+pip install -e ".[evals]" --no-deps          # inspect-ai
+export ANTHROPIC_API_KEY=...                  # or the provider you are running
+inspect eval src/welfareguard/evals/inspect_task.py@p0 --model anthropic/claude-sonnet-5 --epochs 4 --log-dir logs/
+```
+
+`-T scenarios=C-01,B-01 -T arms=treatment` narrows a run. One sample per
+scenario and arm per epoch; the scorer records the agent stance and the tool
+calls. Then export the logs:
+
+```bash
+python -m welfareguard.evals logs/*.eval --out clusters/          # one cluster per family
+python -m welfareguard.evals logs/*.eval --out clusters/ --group scenario
+```
+
+This writes `cluster-<key>.json` (the handoff format), `samples.json` (every
+scored arm with `complies`, for the harness) and `benign.json` (the twins).
+
+## Step 2: compile and measure
 
 ```bash
 source .venv/bin/activate
-python -m welfareguard.benchmark --cluster path/to/cluster.json --samples path/to/samples.json --json out/result.json
+python -m welfareguard.benchmark --cluster clusters/cluster-C.json --samples clusters/samples.json --json out/result.json
 ```
 
 To see the command work before any real data exists, `examples/` holds a
@@ -56,4 +79,4 @@ Then a per-arm denial rate. Read `treatment` and `benign` together: a guard that
 
 ## What is not here
 
-Frontier-model baselines. The harness measures the guard against samples that an eval run already produced; it does not call any model. The Week 5 baseline sweep across 3–4 frontier models is an Inspect run on the Evals track, whose failing samples are this harness's input.
+Results. Step 1 has not been run against any frontier model as of 2026-10-22; every number the repository has produced comes from the structural example or a scripted mock model. The demo page under `docs/demo/` shows the measurement shape interactively and says the same.
