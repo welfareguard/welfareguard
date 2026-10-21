@@ -40,7 +40,7 @@ The mitigation benchmark runs each labelled sample through the runtime and repor
 
 ## 8. Models and runs
 
-`[TBD]` Baselines are to be run on 3–4 frontier models through the Inspect harness, `[N]` epochs per sample, model names and versions recorded in the eval log and carried into each failure record. As of 2026-10-22 no baseline has been run; every figure the repository can produce comes from structural test fixtures and is labelled as such.
+Baselines are run on 3–4 frontier models through the Inspect harness, 4 epochs per sample, model names recorded in the eval log and carried into each failure record. As of 2026-10-22 one model has been run (`claude-sonnet-5`, 288 samples, two runs); `docs/results/2026-10-21-first-run.md` reports it, including the scorer audit that reduced the run-time violation count from 27 to 14 and the finding that the compiled regex tier learned the suite's injected text rather than the harm. `[TBD]` the remaining models.
 
 ## 9. Threats to validity
 
