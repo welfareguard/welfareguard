@@ -1,6 +1,6 @@
 # ADR-004: Own the ADR-002 cascade in WelfareGuard, and run single-tier degraded when no classifier is enforceable
 
-| **Status** | Proposed |
+| **Status** | Accepted |
 | --- | --- |
 | **Date** | 2026-10-20 |
 | **Author** | Vidura Wijekoon (repo maintainer) |
@@ -61,6 +61,6 @@ Cost: implemented in this change. No new dependencies; `torch`/`transformers` re
 
 | **Submitted** | 2026-10-20 |
 | --- | --- |
-| **Decision** |  |
-| **Reviewer notes** |  |
-| **Approved on** |  |
+| **Decision** | Approved |
+| **Reviewer notes** | Approved by Vidura Wijekoon, 2026-10-21. |
+| **Approved on** | 2026-10-21 |

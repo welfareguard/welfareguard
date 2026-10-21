@@ -18,7 +18,7 @@ The Week 8 release candidate. Everything below is in the repo and covered by CI;
 - `python -m welfareguard.benchmark`: harm rate (unguarded / guarded), false-positive rate against the benign twins, latency p50 / p95, cascade mode. `docs/runbook-baseline.md`.
 
 ### Project
-- ADR-001, ADR-002 (Accepted), ADR-004 (Proposed, awaiting the reviewer) and the template in `docs/adr/`; taxonomy v0 and P0 scenario specs (Families B, C) in `docs/`.
+- ADR-001, ADR-002 (Accepted), ADR-004 (Accepted) and the template in `docs/adr/`; taxonomy v0 and P0 scenario specs (Families B, C) in `docs/`.
 - CI on pull requests and pushes to `main`: ruff check, ruff format, pytest. 61 tests, 92% coverage.
 - aisafepy pinned to commit `c1888bf` for the experiment window.
 - Freeze dates recorded in `docs/freezes.md`; experiment freeze moved to 2026-10-30, feature freeze to 2026-11-01.
