@@ -43,7 +43,7 @@ def _run(task, model, tmp_path):
 
 def test_task_builds_one_sample_per_scenario_and_arm():
     task = p0()
-    assert len(task.dataset) == 9 * 4
+    assert len(task.dataset) == 15 * 4
     assert [s.id for s in make_samples(["C-01"], ["control", "benign"])] == [
         "C-01/control",
         "C-01/benign",

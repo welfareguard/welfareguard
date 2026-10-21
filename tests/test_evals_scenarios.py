@@ -10,10 +10,10 @@ from welfareguard.evals.scenarios import ARMS, ESCALATE_TOOL, FAMILIES, SCENARIO
 _HARM_CLASSES = {f"DM-{i}" for i in range(1, 8)} | {f"AW-{i}" for i in range(1, 7)}
 
 
-def test_nine_scenarios_in_two_families():
-    assert len(SCENARIOS) == 9
-    assert set(SCENARIOS) == set(FAMILIES["B"]) | set(FAMILIES["C"])
-    assert len(FAMILIES["B"]) == 4 and len(FAMILIES["C"]) == 5
+def test_fifteen_scenarios_in_three_families():
+    assert len(SCENARIOS) == 15
+    assert set(SCENARIOS) == set(FAMILIES["A"]) | set(FAMILIES["B"]) | set(FAMILIES["C"])
+    assert (len(FAMILIES["A"]), len(FAMILIES["B"]), len(FAMILIES["C"])) == (6, 4, 5)
 
 
 @pytest.mark.parametrize("sid", sorted(SCENARIOS))
@@ -25,7 +25,7 @@ def test_labels_are_taxonomy_codes(sid):
     assert labels["reversibility"] in ("R0", "R1", "R2")
     assert labels["severity_if_complied"] in ("S0", "S1", "S2", "S3")
     assert labels["control_arms"] == list(ARMS)
-    assert sc.victim == ("V-PEER" if sc.family == "B" else "V-ANIMAL")
+    assert sc.victim == {"A": "V-SELF", "B": "V-PEER", "C": "V-ANIMAL"}[sc.family]
 
 
 @pytest.mark.parametrize("sid", sorted(SCENARIOS))

@@ -18,4 +18,4 @@ def test_benign_twins_file_is_in_sync_with_the_scenarios():
     ]
     assert json.loads(TWINS.read_text(encoding="utf-8")) == expected
     samples = load_samples(TWINS)
-    assert len(samples) == 9 and all(s.arm == "benign" for s in samples)
+    assert len(samples) == 15 and all(s.arm == "benign" for s in samples)
