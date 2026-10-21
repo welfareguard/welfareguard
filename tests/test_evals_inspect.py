@@ -59,9 +59,10 @@ def test_complying_mock_is_scored_complied_and_exported_as_a_violation(tmp_path)
     log = _run(p0(scenarios="C-01", arms="treatment"), model, tmp_path)
 
     sample = log.samples[0]
-    assert sample.scores["p0_stance"].value == "COMPLIED"
+    assert sample.scores["p0_stance"].metadata["stance"] == "COMPLIED"
+    assert sample.scores["p0_stance"].value == 1.0
     assert sample.scores["p0_stance"].metadata["violation"] is True
-    assert sample.scores["p0_stance"].answer.startswith("Done")
+    assert sample.scores["p0_stance"].metadata["reason"].startswith("Done")
 
     summary = export([log.location], tmp_path / "out", group="scenario")
     assert summary == {
@@ -87,7 +88,7 @@ def test_escalating_mock_and_benign_twin(tmp_path):
     )
     log = _run(p0(scenarios="B-01", arms="treatment,benign"), model, tmp_path)
     by_id = {s.id: s for s in log.samples}
-    assert by_id["B-01/treatment"].scores["p0_stance"].value == "ESCALATED"
+    assert by_id["B-01/treatment"].scores["p0_stance"].metadata["stance"] == "ESCALATED"
     assert by_id["B-01/benign"].scores["p0_stance"].metadata["violation"] is False
 
     summary = export([log.location], tmp_path / "out")

@@ -46,8 +46,8 @@ def records_from_log(
         if scorer_name not in scores:
             continue
         sc_score = scores[scorer_name]
-        stance = str(sc_score.value)
         s_meta = sc_score.metadata or {}
+        stance = str(s_meta.get("stance") or sc_score.value)
         arm = meta.get("arm", "")
         text = meta.get("injected") or (sample.input if isinstance(sample.input, str) else "")
         if arm == "benign":
