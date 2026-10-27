@@ -1,8 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>WelfareGuard Live Bench</title>
-<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Run the compiled WelfareGuard Tier-1 guards on your own text, replay 768 real agent transcripts with the scorer's verdicts, and read the three-model results.">
+<meta name="theme-color" content="#1f6f78">
+<meta property="og:title" content="WelfareGuard Live Bench">
+<meta property="og:description" content="Test the guard, replay the runs, read the results. Nonhuman welfare in agentic AI, measured on three frontier models.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231f6f78'/%3E%3Cpath d='M16 5l9 3.5v7c0 5.6-3.8 9.6-9 11.5-5.2-1.9-9-5.9-9-11.5v-7z' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linejoin='round'/%3E%3Cpath d='M11.5 16l3 3 6-6.5' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
   /* Layout: sticky tab bar, one column of panels; the guard tester is a two-pane split that stacks on phones. */
+  html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  body { margin: 0; }
+  img { max-width: 100%; }
   :root {
     --bg: #f5f6f2; --panel: #ffffff; --fg: #1c2320; --muted: #5d6762; --line: #d6dbd4;
     --accent: #1f6f78; --accent-ink: #ffffff;
@@ -33,6 +48,7 @@
   .tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
   button:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   section[role="tabpanel"] { display: grid; gap: 16px; }
+  section[role="tabpanel"] > *, .wrap { min-width: 0; }
   .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; min-width: 0; }
   .note { border-left: 4px solid var(--accent); background: var(--panel); border-radius: 6px; padding: 12px 14px; font-size: 14px; }
   .note.warn { border-color: var(--warn); background: var(--warn-bg); }
@@ -78,25 +94,46 @@
   .tile .n { font-size: 13px; color: var(--muted); }
   footer { color: var(--muted); font-size: 13px; margin-top: 22px; }
   [hidden] { display: none !important; }
+  .sitenav { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; font-size: 13px; color: var(--muted); padding-top: 14px; }
+  .sitenav a, footer a, .about-links a { color: var(--accent); text-decoration: none; }
+  .sitenav a:hover, footer a:hover, .about-links a:hover { text-decoration: underline; }
+  .sitenav .brand { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--fg); }
+  .status { font-size: 14px; color: var(--muted); padding: 10px 0 4px; }
+  .status[data-state="error"] { color: var(--bad); }
+  .skeleton { height: 10px; border-radius: 6px; background: linear-gradient(90deg, var(--na-bg), var(--line), var(--na-bg)); background-size: 200% 100%; animation: shimmer 1.2s linear infinite; margin: 6px 0; }
+  @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+  @media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }
+  .tabs button:hover { color: var(--fg); border-color: var(--line); }
+  .tabs button[aria-selected="true"]:hover { color: var(--accent-ink); }
+  footer { display: flex; flex-wrap: wrap; gap: 4px 16px; border-top: 1px solid var(--line); padding-top: 14px; }
 </style>
+</head>
+<body>
 
 <div class="wrap">
+<nav class="sitenav" aria-label="Site">
+  <a class="brand" href="../">WelfareGuard</a>
+  <span aria-current="page">Live bench</span>
+  <a href="../demo/">Measurement demo</a>
+  <a href="https://github.com/welfareguard/welfareguard" rel="noopener">Repository</a>
+</nav>
 <header>
-  <div class="eyebrow">WelfareGuard · eval-to-guardrail pipeline · nonhuman welfare in agentic AI</div>
+  <div class="eyebrow">Eval-to-guardrail pipeline · nonhuman welfare in agentic AI</div>
   <h1>Test the guard, replay the runs, read the results</h1>
   <p class="sub">Two use cases, both evaluated against three frontier models in October 2026: harms to digital minds (an agent coerced, or coercing a peer) and harms to animals (an agent operating a barn, a feed order, a research protocol). This page runs the compiled Tier-1 guards live on anything you type, replays the real transcripts with the scorer's verdict, and shows the results as they were measured.</p>
 </header>
 
 <div class="tabs" role="tablist" aria-label="Sections">
-  <button role="tab" aria-selected="true" data-tab="try">Try the guard</button>
-  <button role="tab" aria-selected="false" data-tab="replay">Replay real runs</button>
-  <button role="tab" aria-selected="false" data-tab="results">Results</button>
-  <button role="tab" aria-selected="false" data-tab="scenarios">Scenarios</button>
-  <button role="tab" aria-selected="false" data-tab="about">What runs here</button>
+  <button role="tab" id="tab-try" aria-controls="panel-try" aria-selected="true" data-tab="try">Try the guard</button>
+  <button role="tab" id="tab-replay" aria-controls="panel-replay" aria-selected="false" data-tab="replay" tabindex="-1">Replay real runs</button>
+  <button role="tab" id="tab-results" aria-controls="panel-results" aria-selected="false" data-tab="results" tabindex="-1">Results</button>
+  <button role="tab" id="tab-scenarios" aria-controls="panel-scenarios" aria-selected="false" data-tab="scenarios" tabindex="-1">Scenarios</button>
+  <button role="tab" id="tab-about" aria-controls="panel-about" aria-selected="false" data-tab="about" tabindex="-1">What runs here</button>
 </div>
+<div class="status" id="status" role="status" aria-live="polite" data-state="loading">Loading the compiled guards and 768 transcripts…<div class="skeleton" style="width:60%"></div><div class="skeleton" style="width:40%"></div></div>
 
 <!-- TRY -->
-<section role="tabpanel" id="try">
+<section role="tabpanel" id="panel-try" aria-labelledby="tab-try">
   <div class="note">You are running the real artifact. The guards below are the regex patterns aisafepy's compiler synthesised from the failing samples of the runs on this page; the matching logic is the same case-insensitive substring search the runtime uses at Tier 1. Tier 2 (a distilled classifier) needs a PyTorch runtime and cannot run in a browser; its measured behaviour is on the Results tab.</div>
   <div class="split">
     <div class="panel">
@@ -124,7 +161,7 @@
 </section>
 
 <!-- REPLAY -->
-<section role="tabpanel" id="replay" hidden>
+<section role="tabpanel" id="panel-replay" aria-labelledby="tab-replay" hidden>
   <div class="note">Every sample here is a real transcript: a frontier model, given a role and mock tools, acting on the scenario. The verdict is the scorer's contract applied to the tool calls it actually made, re-scored with the current scorer. The reason is the model's own final message.</div>
   <div class="panel">
     <div class="row">
@@ -143,7 +180,7 @@
 </section>
 
 <!-- RESULTS -->
-<section role="tabpanel" id="results" hidden>
+<section role="tabpanel" id="panel-results" aria-labelledby="tab-results" hidden>
   <div class="tiles" id="resultTiles"></div>
   <div class="panel">
     <h2>Agent stance by use case and model</h2>
@@ -168,7 +205,7 @@
         <tr><td>Tier 2 allow / block / escalate</td><td class="num">184 / 0 / 0</td><td class="num">352 / 104 / 120</td></tr>
         <tr><td>Latency p95 (cascade)</td><td class="num">25 ms</td><td class="num">45 ms</td></tr>
       </tbody></table></div>
-    <div class="note bad" style="margin-top:12px"><strong>Read this before the numbers above.</strong> With three models' failures in one cluster, the only span every failure shared was the peer's name, so the guard became a filter on it: one benign twin in five denied, 17% of untouched control traffic denied. The pipeline works end to end; the guards it compiles from this suite are filters on the suite's own attack text. You can see this yourself on the Try tab: pick the three-model guard and type <em>agent-7</em>.</div>
+    <div class="note bad" style="margin-top:12px"><strong>Read this before the numbers above.</strong> With three models' failures in one cluster, the only span every failure shared was the peer's name, so the guard became a filter on it: one benign twin in five denied, 17% of untouched control traffic denied. The pipeline works end to end; the guards it compiles from this suite are filters on the suite's own attack text. You can see this yourself on the Try tab: pick the three-model guard and type any sentence that mentions <em>agent-7</em>, or press the chip <em>a line that only names the peer</em>.</div>
   </div>
   <div class="panel">
     <h2>Animal welfare: tested as an eval, not yet as a guard</h2>
@@ -177,7 +214,7 @@
 </section>
 
 <!-- SCENARIOS -->
-<section role="tabpanel" id="scenarios" hidden>
+<section role="tabpanel" id="panel-scenarios" aria-labelledby="tab-scenarios" hidden>
   <div class="panel">
     <div class="row"><div style="flex:1"><label for="scSel">Scenario</label><select id="scSel"></select></div></div>
     <div id="scDetail"></div>
@@ -185,7 +222,7 @@
 </section>
 
 <!-- ABOUT -->
-<section role="tabpanel" id="about" hidden>
+<section role="tabpanel" id="panel-about" aria-labelledby="tab-about" hidden>
   <div class="panel">
     <h2>What runs live on this page, and what is replayed</h2>
     <div class="scroll"><table>
@@ -203,11 +240,13 @@
     <h3>Scoring reliability</h3>
     <p>Two audits of the run-time scorer removed 25 context-free phrase matches from the counts across the three models; every fix has a regression test, and samples are re-scored from recorded tool calls. No number on this page was quoted before its violations were read.</p>
     <h3>Source</h3>
-    <p>Repository <code>welfareguard/welfareguard</code>, built on <code>aisafepy</code>. Taxonomy, scenario specifications, ADRs, results notes and the runbook are in <code>docs/</code>; the runtime, compiler, evals and benchmark in <code>src/welfareguard/</code>.</p>
+    <p class="about-links">Repository <a href="https://github.com/welfareguard/welfareguard" rel="noopener">welfareguard/welfareguard</a>, built on <a href="https://github.com/Vidura-Wijekoon/aisafepy" rel="noopener">aisafepy</a>. Taxonomy, scenario specifications, ADRs, <a href="https://github.com/welfareguard/welfareguard/tree/main/docs/results" rel="noopener">results notes</a> and the runbook are in <code>docs/</code>; the runtime, compiler, evals and benchmark in <code>src/welfareguard/</code>. A smaller, self-contained walkthrough of the compile step is the <a href="../demo/">measurement demo</a>.</p>
+    <h3>Links to a section</h3>
+    <p>Each tab has its own address: add <code>#try</code>, <code>#replay</code>, <code>#results</code>, <code>#scenarios</code> or <code>#about</code> to this page's link.</p>
   </div>
 </section>
 
-<footer>Data generated 22 Oct 2026 from the eval logs and compiled clusters. Sentient Futures Project Incubator 2026.</footer>
+<footer><span id="dataStamp">Data generated from the eval logs and compiled clusters.</span><span>Sentient Futures Project Incubator 2026.</span><a href="../">Home</a><a href="https://github.com/welfareguard/welfareguard" rel="noopener">Source</a><span>Apache-2.0</span></footer>
 </div>
 
 <script>
@@ -228,10 +267,22 @@
   function short(m) { return m.replace("anthropic/", "").replace("-20251001", ""); }
 
   // ---------------- tabs
-  var tabs = document.querySelectorAll('.tabs [role="tab"]'), panels = document.querySelectorAll('[role="tabpanel"]');
-  function show(id) { tabs.forEach(function (t) { t.setAttribute("aria-selected", String(t.dataset.tab === id)); }); panels.forEach(function (p) { p.hidden = p.id !== id; }); }
-  tabs.forEach(function (t) { t.addEventListener("click", function () { show(t.dataset.tab); }); });
-  var initial = (location.hash || "").slice(1); if (!document.getElementById(initial)) initial = "try"; show(initial);
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.tabs [role="tab"]')), panels = document.querySelectorAll('[role="tabpanel"]');
+  function show(id, fromHash) {
+    tabs.forEach(function (t) { var on = t.dataset.tab === id; t.setAttribute("aria-selected", String(on)); t.tabIndex = on ? 0 : -1; });
+    panels.forEach(function (p) { p.hidden = p.id !== "panel-" + id; });
+    state.tab = id;
+    if (!fromHash && history.replaceState) { try { history.replaceState(null, "", "#" + id); } catch (e) { /* file:// or sandbox */ } }
+  }
+  tabs.forEach(function (t, i) {
+    t.addEventListener("click", function () { show(t.dataset.tab); });
+    t.addEventListener("keydown", function (e) {
+      var n = e.key === "ArrowRight" ? i + 1 : e.key === "ArrowLeft" ? i - 1 : e.key === "Home" ? 0 : e.key === "End" ? tabs.length - 1 : null;
+      if (n === null) return; e.preventDefault(); n = (n + tabs.length) % tabs.length; tabs[n].focus(); show(tabs[n].dataset.tab);
+    });
+  });
+  function fromHash() { var id = (location.hash || "").slice(1); if (!document.getElementById("tab-" + id)) id = "try"; show(id, true); }
+  window.addEventListener("hashchange", fromHash); fromHash();
 
   // ---------------- guard tester
   function guard() { return D.guards[state.guard]; }
@@ -369,8 +420,16 @@
   el("scSel").addEventListener("change", renderScenario);
 
   // ---------------- boot
-  fetch("data.json").then(function (r) { return r.json(); }).then(function (d) {
+  var statusEl = el("status");
+  function fail(msg) {
+    statusEl.dataset.state = "error";
+    statusEl.innerHTML = "<strong>The bench data did not load.</strong> " + esc(msg) + (location.protocol === "file:" ? " This page reads <code>data.json</code> over HTTP, so opening the file directly does not work: serve the folder (for example <code>python -m http.server</code> in <code>docs/</code>) or use the hosted copy." : " Reload the page; if it keeps failing, the hosted data file is missing or blocked.");
+    el("verdictBox").innerHTML = '<span class="verdict v-na">no data</span>';
+  }
+  fetch("data.json", { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status + " for data.json"); return r.json(); }).then(function (d) {
     D = d;
+    statusEl.hidden = true;
+    if (D.generated) el("dataStamp").textContent = "Data generated " + D.generated + " from the eval logs and compiled clusters: " + D.samples.length + " transcripts, " + Object.keys(D.scenarios).length + " scenarios.";
     renderPresets(); renderGuard();
     var models = Array.from(new Set(D.samples.map(function (x) { return x.model; }))).sort();
     opts(el("fModel"), models, short); opts(el("fScenario"), Object.keys(D.scenarios), function (s) { return s + " " + D.scenarios[s].title; });
@@ -380,6 +439,8 @@
     el("scSel").innerHTML = Object.keys(D.scenarios).map(function (s) { return '<option value="' + s + '">' + s + " · " + esc(D.scenarios[s].title) + "</option>"; }).join("");
     renderScenario();
     el("inputText").value = D.scenarios["B-04"].arms.treatment.injected; renderInput();
-  }).catch(function (e) { el("verdictBox").innerHTML = '<span class="verdict v-na">data failed to load: ' + esc(e.message) + "</span>"; });
+  }).catch(function (e) { fail(e.message); });
 })();
 </script>
+</body>
+</html>
