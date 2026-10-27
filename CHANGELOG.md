@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Site
+- `docs/index.html`: landing page for the project site; `docs/bench/` and `docs/demo/` are now complete standalone documents (document head, site navigation, loading and error states, keyboard-operable tabs whose addresses survive a reload) and link to each other.
+- `.github/workflows/pages.yml`: publishes `docs/` to GitHub Pages on pushes to `main`, after validating `data.json` and the three pages. Inert until Pages is enabled in the repository settings.
+- Root `README.md` describes the project, the install order, the API and where things are.
+
+### Evals and results (2026-10-21 to 2026-10-22, unmerged at the time of 1.0.0rc1)
+- Second scorer audit of the three-model run; predicates know which arm they score.
+- `docs/results/2026-10-22-three-models.md`: three-model baseline and the guard's precision collapse on the cross-model cluster.
+- `docs/bench/`: interactive bench with the live Tier-1 guards, the replayed transcripts and the three-model results.
+
 ## 1.0.0rc1 — 2026-10-21
 
 The Week 8 release candidate. Everything below is in the repo and covered by CI; what is *not* in it is listed at the end, because a release candidate that hides its gaps is not one.

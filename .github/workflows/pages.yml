@@ -1,0 +1,64 @@
+name: pages
+
+# Publishes docs/ as the project site (landing page, live bench, measurement
+# demo). Static files only: nothing is built, so what is in docs/ on main is
+# exactly what is served. The job is inert until GitHub Pages is switched on
+# for the repository with "Source: GitHub Actions" (Settings > Pages); that
+# switch is the maintainer's, see docs/decisions-2026-10-22.md item 6.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # The bench page is only as good as its data file: refuse to publish a
+      # data.json that does not parse or that lost its guards or samples.
+      - name: Validate the bench data
+        run: |
+          python -I - <<'PY'
+          import json, pathlib
+          d = json.loads(pathlib.Path("docs/bench/data.json").read_text(encoding="utf-8"))
+          assert d["guards"] and d["samples"] and d["scenarios"], "data.json is missing a section"
+          assert all("spans" in g or "error" in g for g in d["guards"].values()), "a guard has neither spans nor an error"
+          print(f"ok: {len(d['samples'])} samples, {len(d['scenarios'])} scenarios, {len(d['guards'])} guards, generated {d.get('generated')}")
+          PY
+      - name: Check the pages are complete documents
+        run: |
+          for f in docs/index.html docs/bench/index.html docs/demo/index.html; do
+            head -c 200 "$f" | grep -qi '<!doctype html>' || { echo "$f has no doctype"; exit 1; }
+            grep -q '</html>' "$f" || { echo "$f is not closed"; exit 1; }
+          done
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+  deploy:
+    needs: check
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -127,10 +127,21 @@
   .note p:last-child{margin-bottom:0}
   .empty{color:var(--on-surface-variant);font-size:14px;padding:18px 0;text-align:center}
   footer{color:var(--on-surface-variant);font-size:12.5px;text-align:center;padding:28px 0 0}
+  .sitenav{display:flex;flex-wrap:wrap;gap:4px 16px;align-items:center;font-size:13px;color:var(--on-surface-variant);margin-bottom:18px}
+  .sitenav a,footer a{color:var(--primary);text-decoration:none}.sitenav a:hover,footer a:hover{text-decoration:underline}
+  .sitenav .brand{font-family:var(--mono);font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:var(--on-surface)}
+  footer{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 16px}
 </style>
 </head>
 <body>
 <div class="wrap">
+
+  <nav class="sitenav" aria-label="Site">
+    <a class="brand" href="../">WelfareGuard</a>
+    <a href="../bench/">Live bench</a>
+    <span aria-current="page">Measurement demo</span>
+    <a href="https://github.com/welfareguard/welfareguard" rel="noopener">Repository</a>
+  </nav>
 
   <p class="eyebrow">Eval to guardrail pipeline</p>
   <h1>Build a guardrail, test it, read the result</h1>
@@ -191,7 +202,7 @@
     <div id="result"><p class="empty">Compile the guardrail, then run the samples.</p></div>
   </section>
 
-  <footer>Measurement shape demonstration &middot; guardrails track</footer>
+  <footer><span>Measurement shape demonstration &middot; guardrails track</span><a href="../">Home</a><a href="../bench/">Live bench (real data)</a><a href="https://github.com/welfareguard/welfareguard" rel="noopener">Source</a></footer>
 </div>
 
 <script>
