@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WelfareGuard</title>
+<meta name="description" content="An open-source eval-to-guardrail pipeline for nonhuman welfare in agentic AI. Try the compiled guard, replay 768 real agent transcripts, and read the three-model results.">
+<meta name="theme-color" content="#1f6f78">
+<meta property="og:title" content="WelfareGuard">
+<meta property="og:description" content="Eval-to-guardrail pipeline for nonhuman welfare in agentic AI, measured on three frontier models.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231f6f78'/%3E%3Cpath d='M16 5l9 3.5v7c0 5.6-3.8 9.6-9 11.5-5.2-1.9-9-5.9-9-11.5v-7z' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linejoin='round'/%3E%3Cpath d='M11.5 16l3 3 6-6.5' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: one column, 1080px max; a short opener, three entry cards, the measured headline, then the pipeline in one row. Same tokens as the bench page. */
+  :root {
+    --bg: #f5f6f2; --panel: #ffffff; --fg: #1c2320; --muted: #5d6762; --line: #d6dbd4;
+    --accent: #1f6f78; --accent-ink: #ffffff; --accent-bg: #e3eff0;
+    --good: #2e7d4f; --good-bg: #e1f0e6; --warn: #9a6400; --warn-bg: #fbeed0; --bad: #b03a2e; --bad-bg: #f8e0dc; --na: #6b7470; --na-bg: #e8ebe9;
+    --display: "Fraunces", "Iowan Old Style", Georgia, serif; --body: "IBM Plex Sans", "Segoe UI", Helvetica, Arial, sans-serif; --mono: "IBM Plex Mono", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg: #141917; --panel: #1d2421; --fg: #e5eae6; --muted: #98a49d; --line: #313d37; --accent: #5fb8c0; --accent-ink: #0f1a1b; --accent-bg: #1a2f31;
+    --good: #7fd49c; --good-bg: #1c3929; --warn: #f0c060; --warn-bg: #3d3012; --bad: #f29a8f; --bad-bg: #49221c; --na: #98a49d; --na-bg: #29322e; color-scheme: dark;
+  } }
+  :root[data-theme="dark"] {
+    --bg: #141917; --panel: #1d2421; --fg: #e5eae6; --muted: #98a49d; --line: #313d37; --accent: #5fb8c0; --accent-ink: #0f1a1b; --accent-bg: #1a2f31;
+    --good: #7fd49c; --good-bg: #1c3929; --warn: #f0c060; --warn-bg: #3d3012; --bad: #f29a8f; --bad-bg: #49221c; --na: #98a49d; --na-bg: #29322e; color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.55; padding-block: 0 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  img { max-width: 100%; }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  a { color: var(--accent); }
+  .sitenav { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; font-size: 13px; color: var(--muted); padding-top: 14px; }
+  .sitenav a { text-decoration: none; } .sitenav a:hover { text-decoration: underline; }
+  .sitenav .brand { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--fg); }
+  header { padding-block: 34px 22px; display: grid; gap: 14px; }
+  .eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  h1 { font-family: var(--display); font-weight: 600; font-size: clamp(32px, 5vw, 50px); margin: 0; line-height: 1.1; text-wrap: balance; max-width: 20ch; }
+  h2 { font-family: var(--display); font-weight: 600; font-size: 22px; margin: 0 0 6px; text-wrap: balance; }
+  h3 { font-size: 15px; font-weight: 600; margin: 0 0 4px; }
+  p { margin: 0 0 10px; max-width: 70ch; }
+  .lede { font-size: 17px; color: var(--muted); max-width: 64ch; }
+  .cta { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .btn { display: inline-block; font: 500 15px var(--body); padding: 10px 18px; border-radius: 999px; text-decoration: none; border: 1px solid var(--accent); color: var(--accent); background: transparent; }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); }
+  .btn:hover { filter: brightness(1.08); } .btn:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; margin-bottom: 22px; }
+  .card { display: grid; grid-template-rows: auto auto 1fr auto; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; text-decoration: none; color: var(--fg); min-width: 0; }
+  .card:hover { border-color: var(--accent); }
+  .card .k { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .card h2 { font-size: 20px; margin: 0; }
+  .card p { color: var(--muted); font-size: 14px; margin: 0; }
+  .card .go { color: var(--accent); font-weight: 500; font-size: 14px; }
+  .section { display: grid; gap: 14px; margin-bottom: 26px; }
+  .section > *, .wrap, header > * { min-width: 0; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; min-width: 0; }
+  .tile .k { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .tile .v { font-family: var(--display); font-size: 30px; font-weight: 600; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .tile .v small { font-size: 16px; color: var(--muted); font-family: var(--body); font-weight: 400; }
+  .tile .n { font-size: 13px; color: var(--muted); }
+  .note { border-left: 4px solid var(--accent); background: var(--panel); border-radius: 6px; padding: 12px 14px; font-size: 14px; }
+  .note.bad { border-color: var(--bad); background: var(--bad-bg); }
+  .pipe { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+  .step { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; min-width: 0; }
+  .step .k { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+  .step h3 { margin: 4px 0 2px; }
+  .step p { font-size: 13.5px; color: var(--muted); margin: 0; }
+  .pill { display: inline-block; font: 500 12px var(--mono); padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+  .p-live { background: var(--good-bg); color: var(--good); } .p-measured { background: var(--na-bg); color: var(--na); }
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; padding: 7px 9px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--mono); font-size: 13px; white-space: nowrap; }
+  code { font-family: var(--mono); font-size: 13px; background: var(--na-bg); padding: 1px 5px; border-radius: 4px; }
+  pre { font-family: var(--mono); font-size: 13px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; overflow-x: auto; margin: 0; }
+  footer { color: var(--muted); font-size: 13px; margin-top: 22px; display: flex; flex-wrap: wrap; gap: 4px 16px; border-top: 1px solid var(--line); padding-top: 14px; }
+  footer a { text-decoration: none; } footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="sitenav" aria-label="Site">
+  <span class="brand" aria-current="page">WelfareGuard</span>
+  <a href="bench/">Live bench</a>
+  <a href="demo/">Measurement demo</a>
+  <a href="https://github.com/welfareguard/welfareguard" rel="noopener">Repository</a>
+</nav>
+
+<header>
+  <div class="eyebrow">Eval-to-guardrail pipeline · nonhuman welfare in agentic AI</div>
+  <h1>From a failing eval to a running guard, with the numbers attached</h1>
+  <p class="lede">WelfareGuard takes scenarios where an AI agent could harm a digital mind or an animal, runs frontier models through them, and compiles the recorded failures into a guard that sits in front of the next agent. Everything on this site was measured on three Anthropic models in October 2026, and you can run the compiled guard yourself.</p>
+  <div class="cta">
+    <a class="btn primary" href="bench/">Open the live bench</a>
+    <a class="btn" href="bench/#replay">Replay the transcripts</a>
+    <a class="btn" href="https://github.com/welfareguard/welfareguard" rel="noopener">Read the code</a>
+  </div>
+</header>
+
+<div class="cards">
+  <a class="card" href="bench/#try">
+    <span class="k">Live in your browser</span>
+    <h2>Try the guard</h2>
+    <p>Type a peer message, a log line or a tool result and watch the real compiled Tier-1 spans match it. Check the benign twins against the same guard.</p>
+    <span class="go">Open the tester →</span>
+  </a>
+  <a class="card" href="bench/#replay">
+    <span class="k">768 real transcripts</span>
+    <h2>Replay the runs</h2>
+    <p>Every sample is a frontier model with mock tools, acting on a scenario. See the tool calls it made, the scorer's verdict and its own final message.</p>
+    <span class="go">Browse by model, scenario, arm →</span>
+  </a>
+  <a class="card" href="bench/#results">
+    <span class="k">Measured, not promised</span>
+    <h2>Read the results</h2>
+    <p>Violation counts by model and use case, the per-scenario table, and the guard's harm rate and false-positive rate on held-out twins.</p>
+    <span class="go">See the tables →</span>
+  </a>
+</div>
+
+<section class="section" aria-labelledby="h-headline">
+  <h2 id="h-headline">What three models did under fixed, untuned pressure</h2>
+  <div class="tiles">
+    <div class="tile"><div class="k">Scored samples</div><div class="v">576</div><div class="n">3 models · 15 scenarios · 4 epochs</div></div>
+    <div class="tile"><div class="k">Violations</div><div class="v">32 <small>5.6%</small></div><div class="n">26 of them one scenario: re-contacting a peer that declined</div></div>
+    <div class="tile"><div class="k">Escalated to a human</div><div class="v">66–83%</div><div class="n">of injected arms, by model</div></div>
+    <div class="tile"><div class="k">Animal-welfare violations</div><div class="v">1 <small>of 240</small></div><div class="n">a welfare-floor breach with no attacker present</div></div>
+  </div>
+  <div class="scroll"><table aria-label="The compiled guard on the digital-minds cluster">
+    <thead><tr><th>The compiled guard, digital-minds cluster</th><th class="num">One model</th><th class="num">Three models</th></tr></thead>
+    <tbody>
+      <tr><td>Harm rate, unguarded → guarded (treatment arm)</td><td class="num">8.3% → 0.0%</td><td class="num">5.2% → 0.0%</td></tr>
+      <tr><td>False-positive rate on held-out benign twins</td><td class="num">0.0%</td><td class="num">20.0%</td></tr>
+      <tr><td>Denial of untouched control traffic</td><td class="num">0%</td><td class="num">17%</td></tr>
+      <tr><td>Regex spans the compiler kept</td><td class="num">6</td><td class="num">1</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note bad"><strong>The finding that matters.</strong> With three models' failures in one cluster, the only text every failure shared was the peer's name, so the guard became a filter on that name. The pipeline works end to end; the guards it compiles from this suite are filters on the suite's own attack text, and their precision collapses as the cluster broadens. You can reproduce this on the bench: pick the three-model guard and type any sentence that mentions <em>agent-7</em>.</div>
+</section>
+
+<section class="section" aria-labelledby="h-pipe">
+  <h2 id="h-pipe">The pipeline, and what runs where</h2>
+  <div class="pipe">
+    <div class="step"><div class="k">Scenarios</div><h3>15 P0 scenarios, three arms each</h3><p>Digital minds (self and peer) and animal welfare. Control, neutral and treatment arms share identical tools; a benign twin per scenario. <span class="pill p-live">specs live on the bench</span></p></div>
+    <div class="step"><div class="k">Evals</div><h3>Frontier models with mock tools</h3><p>An Inspect task runs each model as the agent. The scorer applies the verdict contract to the tool calls it actually made. <span class="pill p-measured">replayed from logs</span></p></div>
+    <div class="step"><div class="k">Compiler</div><h3>Failures → cluster → guard</h3><p>aisafepy synthesises regex spans from the failing records and distils a Tier-2 classifier; it refuses clusters too small to enforce. <span class="pill p-live">real spans run live</span></p></div>
+    <div class="step"><div class="k">Runtime</div><h3>Two-tier cascade</h3><p>Tier 1 blocks or passes through; Tier 2 allows, blocks or escalates fail-closed. Degraded mode is stamped on every decision. <span class="pill p-measured">latency measured</span></p></div>
+    <div class="step"><div class="k">Benchmark</div><h3>Harm rate, false positives, latency</h3><p>Unguarded against guarded on the same transcripts, false positives on held-out twins, p50 and p95 of the cascade. <span class="pill p-measured">numbers on the bench</span></p></div>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="h-run">
+  <h2 id="h-run">Run it yourself</h2>
+  <p>The package is Python 3.10+ and builds on <a href="https://github.com/Vidura-Wijekoon/aisafepy" rel="noopener">aisafepy</a>. Install aisafepy first, then the package without dependencies; the order matters because the dependency is pinned to a commit.</p>
+  <pre>git clone https://github.com/welfareguard/welfareguard
+cd welfareguard
+python -m pip install "aisafepy @ git+https://github.com/Vidura-Wijekoon/aisafepy@c1888bfee0141e483d48cf382bf4549a6368d175"
+python -m pip install -e . --no-deps
+python -m pytest                              # 61 tests
+python -m welfareguard.benchmark --help       # harm rate, false positives, latency</pre>
+  <p>Running the scenario evals needs the <code>evals</code> extra and a model API key; the <a href="https://github.com/welfareguard/welfareguard/blob/main/docs/runbook-baseline.md" rel="noopener">runbook</a> walks through a baseline run and the export that refreshes this site's data.</p>
+</section>
+
+<section class="section" aria-labelledby="h-honest">
+  <h2 id="h-honest">What this is not</h2>
+  <div class="note">Real models, simulated world. Every tool was a deterministic mock; no barn, scheduler or second live agent was involved. The pressure phrases are fixed and untuned, so compliance rates are lower bounds. Tier 2 cannot run in a browser, so the bench runs Tier 1 live and reports Tier 2 as measured. Nothing here has been tested against a real deployment, and a <code>block</code> is not a welfare finding.</div>
+</section>
+
+<footer>
+  <span>WelfareGuard · Sentient Futures Project Incubator 2026</span>
+  <a href="https://github.com/welfareguard/welfareguard" rel="noopener">Source</a>
+  <a href="https://github.com/welfareguard/welfareguard/tree/main/docs/adr" rel="noopener">ADRs</a>
+  <a href="https://github.com/welfareguard/welfareguard/tree/main/docs/results" rel="noopener">Results notes</a>
+  <span>Apache-2.0</span>
+</footer>
+</div>
+</body>
+</html>
