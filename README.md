@@ -15,6 +15,11 @@ static files under [`docs/`](docs/), published to GitHub Pages by
 `https://welfareguard.github.io/welfareguard/` once Pages is enabled for the
 repository. To run the site locally: `cd docs && python -m http.server 8000`.
 
+**App**: [`app/`](app/) is the plain-language interactive version of the same
+data for a general audience, built as a Vite + React + Tailwind single-page app
+in the layout Lovable uses, so it can be opened and published from Lovable or
+any static host. See [`app/README.md`](app/README.md).
+
 ## Install
 
 Python 3.10+. aisafepy is installed first and pinned to a commit; the

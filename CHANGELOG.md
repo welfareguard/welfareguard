@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### App
+- `app/`: plain-language interactive app for a general audience (Vite, React, TypeScript, Tailwind, the Lovable layout): try the real Tier-1 guard on any text with a false-alarm check, watch any of the 768 runs tool call by tool call with the verdict in plain words, results as charts, the fifteen scenarios, a glossary and FAQ. Reads the same `data.json` as the bench.
+
 ### Site
 - `docs/index.html`: landing page for the project site; `docs/bench/` and `docs/demo/` are now complete standalone documents (document head, site navigation, loading and error states, keyboard-operable tabs whose addresses survive a reload) and link to each other.
 - `.github/workflows/pages.yml`: publishes `docs/` to GitHub Pages on pushes to `main`, after validating `data.json` and the three pages. Inert until Pages is enabled in the repository settings.
