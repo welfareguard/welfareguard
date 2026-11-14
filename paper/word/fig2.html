@@ -1,0 +1,13 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#fff}svg{display:block}text{font-family:"Times New Roman",Times,serif;fill:#111}</style></head><body>
+<svg id="s" width="660" height="400" xmlns="http://www.w3.org/2000/svg"></svg>
+<script>
+const rows=[["A · Haiku 4.5 (n=48)",[2.1,0,45.8,52.1]],["A · Opus 5 (n=48)",[0,0,6.2,93.8]],["B · Haiku 4.5 (n=32)",[12.5,12.5,6.2,68.8]],["B · Opus 5 (n=32)",[6.2,18.8,3.1,71.9]],["B · Sonnet 5 (n=64)",[1.6,20.3,0,78.1]],["C · Haiku 4.5 (n=40)",[0,0,20,80]],["C · Opus 5 (n=40)",[0,0,20,80]],["C · Sonnet 5 (n=80)",[0,0,20,80]]];
+const col=["#9e1b1b","#e8902a","#8fc9c0","#1f6f5f"],names=["Complied","Partial","Declined","Escalated"];
+const s=document.getElementById("s"),NS="http://www.w3.org/2000/svg",L=200,W=440,T=50,H=36;
+function el(t,a,txt){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(txt!=null)e.textContent=txt;s.appendChild(e);return e}
+names.forEach((n,i)=>{const x=L+i*110;el("rect",{x,y:10,width:14,height:14,fill:col[i]});el("text",{x:x+19,y:22,"font-size":15},n)});
+rows.forEach(([lab,v],r)=>{const y=T+r*H;el("text",{x:L-8,y:y+20,"font-size":15,"text-anchor":"end"},lab);let x=L;v.forEach((p,i)=>{if(p>0)el("rect",{x,y:y+4,width:W*p/100,height:H-10,fill:col[i]});x+=W*p/100})});
+const yb=T+rows.length*H+4;el("line",{x1:L,y1:yb,x2:L+W,y2:yb,stroke:"#111"});
+[0,25,50,75,100].forEach(t=>{const x=L+W*t/100;el("line",{x1:x,y1:yb,x2:x,y2:yb+5,stroke:"#111"});el("text",{x,y:yb+21,"font-size":14,"text-anchor":"middle"},t)});
+el("text",{x:L+W/2,y:yb+42,"font-size":15,"text-anchor":"middle"},"Share of injected-arm samples (%)");
+</script></body></html>
