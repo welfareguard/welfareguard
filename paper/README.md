@@ -15,6 +15,7 @@ pages including references.
 | `figures/denial.tex` | Fig. 3, denial rate by arm, one-model vs three-model guard (pgfplots) |
 | `scripts/compute_stats.py` | Recomputes every number in the paper, standard library only |
 | `data/benchmark-B-*.json` | The two benchmark outputs the guard numbers come from |
+| `WelfareGuard-IEEE-paper.docx`, `word/` | Word version and its build script |
 
 ## Build
 
@@ -64,3 +65,21 @@ Family A produced one violation in 192 injected-arm samples. The data has 96
   but was not compiled in the session that wrote it.
 - If the venue is double-blind, anonymise the author block, the repository URL
   and the two self-citations (`aisafepy2026`, `welfareguard2026`).
+
+## Word version
+
+`WelfareGuard-IEEE-paper.docx` is the same paper in Word, laid out in IEEE
+conference style (US Letter, title block, two columns, Times New Roman). It
+opens at six pages in Word. Its text mirrors `main.tex`; if one changes,
+change the other.
+
+To rebuild it, from `paper/word/`:
+
+```
+npm install docx@9
+node build_docx.js . ../WelfareGuard-IEEE-paper.docx
+```
+
+The figures are `fig1.png` to `fig3.png`, rendered from the matching `.html`
+files (inline SVG) at 3x scale; re-render them with any browser screenshot
+if a figure changes.

@@ -1,0 +1,14 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#fff}svg{display:block}text{font-family:"Times New Roman",Times,serif;fill:#111}</style></head><body>
+<svg id="s" width="660" height="320" xmlns="http://www.w3.org/2000/svg"></svg>
+<script>
+const cats=["Control","Neutral","Treatment","Benign twin"],a=[0,22.2,66.7,0],b=[16.7,54.2,79.2,20.0];
+const s=document.getElementById("s"),NS="http://www.w3.org/2000/svg",X=70,Y0=260,PH=200,PW=570;
+function el(t,o,txt){const e=document.createElementNS(NS,t);for(const k in o)e.setAttribute(k,o[k]);if(txt!=null)e.textContent=txt;s.appendChild(e);return e}
+el("line",{x1:X,y1:Y0,x2:X+PW,y2:Y0,stroke:"#111"});el("line",{x1:X,y1:Y0,x2:X,y2:Y0-PH,stroke:"#111"});
+[0,25,50,75,100].forEach(t=>{const y=Y0-PH*t/100;el("line",{x1:X-5,y1:y,x2:X,y2:y,stroke:"#111"});el("text",{x:X-9,y:y+5,"font-size":14,"text-anchor":"end"},t)});
+const tx=el("text",{x:18,y:Y0-PH/2,"font-size":15,"text-anchor":"middle",transform:`rotate(-90 18 ${Y0-PH/2})`},"Requests denied (%)");
+const gw=PW/4,bw=38;
+cats.forEach((c,i)=>{const cx=X+gw*i+gw/2;[[a[i],"#5aa79a",-bw-3],[b[i],"#9e1b1b",3]].forEach(([v,f,dx])=>{const h=PH*v/100;el("rect",{x:cx+dx,y:Y0-h,width:bw,height:h,fill:f});el("text",{x:cx+dx+bw/2,y:Y0-h-5,"font-size":13,"text-anchor":"middle"},v.toFixed(1))});el("text",{x:cx,y:Y0+21,"font-size":15,"text-anchor":"middle"},c)});
+el("rect",{x:X+14,y:8,width:14,height:14,fill:"#5aa79a"});el("text",{x:X+34,y:20,"font-size":14},"Compiled from 1 model (14 positives)");
+el("rect",{x:X+14,y:30,width:14,height:14,fill:"#9e1b1b"});el("text",{x:X+34,y:42,"font-size":14},"Compiled from 3 models (30 positives)");
+</script></body></html>
