@@ -1,0 +1,31 @@
+% Fig. 1: the eval-to-guardrail pipeline. Single column.
+\begin{tikzpicture}[
+  font=\scriptsize,
+  box/.style={draw, rounded corners=1.5pt, align=center, inner sep=2.5pt, minimum height=7.5mm, text width=14mm, fill=black!4},
+  tier/.style={draw, rounded corners=1.5pt, align=center, inner sep=2.5pt, minimum height=7.5mm, text width=18mm},
+  arr/.style={-{Stealth[length=1.6mm]}, semithick},
+  lab/.style={font=\tiny, align=center, inner sep=1pt}
+]
+  % row 1: evaluation
+  \node[box] (tax) {Taxonomy\\13 classes};
+  \node[box, right=3.2mm of tax] (sc) {15 scenarios\\3 arms + twin};
+  \node[box, right=3.2mm of sc] (run) {Agent runs\\768 transcripts};
+  \node[box, right=3.2mm of run] (score) {Tool-call\\scorer};
+  \draw[arr] (tax) -- node[lab, above]{labels} (sc);
+  \draw[arr] (sc) -- (run);
+  \draw[arr] (run) -- node[lab, above]{calls} (score);
+
+  % row 2: compilation and runtime
+  \node[box, below=7mm of score] (cl) {Failure\\clusters};
+  \node[box, left=3.2mm of cl] (comp) {Compiler\\regex $\cdot$ DistilBERT};
+  \node[tier, left=3.2mm of comp, text width=12mm, fill=white] (t1) {Tier 1\\block / pass};
+  \node[tier, left=3.2mm of t1, text width=13mm, fill=white] (t2) {Tier 2\\allow / block / esc.};
+  \draw[arr] (score) -- node[lab, right]{violations} (cl);
+  \draw[arr] (cl) -- (comp);
+  \draw[arr] (comp) -- node[lab, above]{artifacts} (t1);
+  \draw[arr] (t1) -- node[lab, above]{pass} (t2);
+
+  % runtime boundary; the benchmark replays every labelled sample through it
+  \node[draw, dashed, rounded corners=1.5pt, fit=(t1)(t2), inner sep=1.4mm,
+        label={[font=\tiny, align=center]below:fail-closed runtime cascade, replayed by the benchmark}] (casc) {};
+\end{tikzpicture}
